@@ -1,7 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { logoutUser } from '../../features/auth/authSlice';
-import { Button } from '../ui/Button';
+import { Button } from '../ui/Button'
 import { 
   LayoutDashboard, 
   Package, 

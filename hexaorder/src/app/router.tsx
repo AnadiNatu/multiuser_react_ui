@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { JSX, lazy, Suspense } from 'react';
 import {
   createBrowserRouter,
   Navigate,

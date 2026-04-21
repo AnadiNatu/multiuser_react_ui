@@ -14,7 +14,7 @@ const initialState: AuthState = {
   error: null,
 };
 
-export const loginUser = createAsyncThunk
+export const loginUser = createAsyncThunk<
   User,
   { email: string; password: string },
   { rejectValue: string }

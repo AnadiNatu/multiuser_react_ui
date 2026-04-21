@@ -5,7 +5,7 @@ import { fetchOrders } from '../features/orders/ordersSlice';
 import { Widget } from '../components/ui/Widget';
 import { Badge } from '../components/ui/Badge';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
-import { LoadingSpinner, SkeletonCard } from '../components/ui/LoadingSpinner';
+import { SkeletonCard } from '../components/ui/LoadingSpinner';
 import { 
   DollarSign, 
   ShoppingBag, 
@@ -18,7 +18,6 @@ import {
   Package as PackageIcon
 } from 'lucide-react';
 import { formatCurrency, cn } from '../utils/helpers';
-import { motion } from 'motion/react';
 
 export default function Dashboard() {
   const dispatch = useAppDispatch();
@@ -39,7 +38,6 @@ export default function Dashboard() {
     }
   }, [dispatch, products.length, orders.length]);
 
-  // Calculate stats from real data
   const stats = {
     totalRevenue: orders
       .filter(o => o.status === 'COMPLETED')
@@ -139,14 +137,12 @@ export default function Dashboard() {
         </p>
       </header>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {displayStats.map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+          <div 
+            key={stat.label} 
+            className="opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards]" 
+            style={{ animationDelay: `${index * 0.1}s` }}
           >
             <Widget className="relative overflow-hidden group">
               <div className="flex items-start justify-between">
@@ -166,14 +162,13 @@ export default function Dashboard() {
                 <stat.icon className="w-24 h-24" />
               </div>
             </Widget>
-          </motion.div>
+          </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {isAdmin ? (
           <>
-            {/* System Health Widget */}
             <Widget title="System Health" className="lg:col-span-1" collapsible>
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -204,7 +199,6 @@ export default function Dashboard() {
               </div>
             </Widget>
 
-            {/* Recent Orders Widget */}
             <Widget 
               title="Recent Orders" 
               subtitle={`${stats.totalOrders} total orders`}
@@ -238,7 +232,6 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            {/* User Quick Actions */}
             <Widget title="Quick Actions" className="lg:col-span-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button className="p-4 bg-gradient-to-br from-brand-green to-green-600 text-white rounded-xl hover:shadow-lg transition-all text-left">
@@ -254,7 +247,6 @@ export default function Dashboard() {
               </div>
             </Widget>
 
-            {/* User Recent Activity */}
             <Widget title="Recent Activity" className="lg:col-span-1">
               <div className="space-y-3">
                 {userOrders.slice(0, 3).map((order) => (

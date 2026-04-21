@@ -2,7 +2,7 @@ import React, { ReactNode, useState } from 'react';
 import { cn } from '../../utils/helpers';
 import { ChevronUp, X } from 'lucide-react';
 
-interface WidgetProps extends React.HTMLAttributes<HTMLDivElement> {
+interface WidgetProps {
   children: ReactNode;
   className?: string;
   title?: ReactNode;
@@ -24,7 +24,6 @@ export function Widget({
   collapsible = false,
   closable = false,
   onClose,
-  ...props 
 }: WidgetProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
@@ -41,8 +40,7 @@ export function Widget({
       className={cn(
         'bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all',
         className
-      )} 
-      {...props}
+      )}
     >
       {(title || subtitle) && (
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">

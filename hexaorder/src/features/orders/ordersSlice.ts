@@ -25,7 +25,7 @@ export const fetchOrders = createAsyncThunk(
   async () => ordersService.getOrders()
 );
 
-export const createOrder = createAsyncThunk
+export const createOrder = createAsyncThunk<
   Order,
   Omit<Order, 'id' | 'createdAt'>,
   { rejectValue: string }
@@ -38,7 +38,7 @@ export const createOrder = createAsyncThunk
   }
 });
 
-export const updateOrderStatus = createAsyncThunk
+export const updateOrderStatus = createAsyncThunk<
   Order,
   { id: string; status: Order['status'] },
   { rejectValue: string }

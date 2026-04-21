@@ -13,6 +13,8 @@ interface State {
   errorInfo: ErrorInfo | null;
 }
 
+const isDevelopment = import.meta.env.DEV;
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -68,7 +70,7 @@ export class ErrorBoundary extends Component<Props, State> {
               We encountered an unexpected error. Don't worry, your data is safe.
             </p>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {isDevelopment && this.state.error && (
               <details className="mb-6 text-left">
                 <summary className="cursor-pointer text-sm font-medium text-slate-700 mb-2">
                   Error Details (Development Only)

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { 
   fetchProducts, 
@@ -69,7 +69,7 @@ export default function ProductList() {
   const categories = ['All', ...new Set(products.map(p => p.category))];
 
   const handleDelete = async (id: string) => {
-    await dispatch(deleteProduct(id));
+    await dispatch(deleteProduct(id)).unwrap();
     setDeleteConfirm(null);
   };
 

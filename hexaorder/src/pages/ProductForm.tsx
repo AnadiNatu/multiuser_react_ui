@@ -18,9 +18,9 @@ import { Alert } from '../components/ui/Alert';
 import { PageLoader } from '../components/ui/LoadingSpinner';
 import { validateForm, commonRules } from '../utils/validation';
 import { ArrowLeft } from 'lucide-react';
-import { Product } from '../types';
+import { Product, ProductCategory } from '../types';
 
-type ProductFormData = Omit<Product, 'id'>;
+type ProductFormData = Omit<Product, 'id' | 'createdAt' | 'updatedAt'>;
 
 const CATEGORIES = ['Electronics', 'Accessories', 'Furniture', 'Office Supplies'];
 
@@ -44,7 +44,7 @@ export default function ProductForm() {
     description: '',
     price: 0,
     stock: 0,
-    category: 'Electronics',
+    category: 'Electronics' as ProductCategory,
     image: '',
   });
 
@@ -82,7 +82,6 @@ export default function ProductForm() {
       ...prev,
       [name]: name === 'price' || name === 'stock' ? Number(value) : value,
     }));
-    // Clear error for this field
     if (errors[name as keyof ProductFormData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -106,10 +105,18 @@ export default function ProductForm() {
     }
 
     try {
+      const now = new Date().toISOString();
+      const productData: Product = {
+        ...formData,
+        id: id || '',
+        createdAt: selectedProduct?.createdAt || now,
+        updatedAt: now,
+      };
+
       if (isEditMode && id) {
-        await dispatch(updateProduct({ id, data: formData })).unwrap();
+        await dispatch(updateProduct({ id, data: productData })).unwrap();
       } else {
-        await dispatch(createProduct(formData)).unwrap();
+        await dispatch(createProduct(productData)).unwrap();
       }
       navigate('/products');
     } catch (err) {
