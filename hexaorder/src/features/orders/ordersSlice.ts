@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { Order } from '../../types';
 import { ordersService } from './ordersService';
+import { RootState } from '../../app/store';
 
 interface OrdersState {
   items: Order[];
@@ -20,21 +21,28 @@ const initialState: OrdersState = {
   error: null,
 };
 
-export const fetchOrders = createAsyncThunk(
-  'orders/fetchOrders',
-  async () => ordersService.getOrders()
-);
+export const fetchOrders = createAsyncThunk<
+  Order[],
+  void,
+  { state: RootState; rejectValue: string }
+>('orders/fetchOrders', async (_, { getState, rejectWithValue }) => {
+  try {
+    const rawRole = getState().auth.user?.rawRole;
+    return await ordersService.getOrders(rawRole);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to load orders');
+  }
+});
 
 export const createOrder = createAsyncThunk<
   Order,
-  Omit<Order, 'id' | 'createdAt'>,
+  { items: Array<{ productId: string; quantity: number }> },
   { rejectValue: string }
 >('orders/createOrder', async (payload, { rejectWithValue }) => {
   try {
     return await ordersService.createOrder(payload);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to create order';
-    return rejectWithValue(message);
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to create order');
   }
 });
 
@@ -46,8 +54,7 @@ export const updateOrderStatus = createAsyncThunk<
   try {
     return await ordersService.updateOrderStatus(id, status);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to update order';
-    return rejectWithValue(message);
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to update order');
   }
 });
 
@@ -64,7 +71,6 @@ const ordersSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch orders
       .addCase(fetchOrders.pending, (state) => {
         state.fetchStatus = 'loading';
         state.error = null;
@@ -73,11 +79,12 @@ const ordersSlice = createSlice({
         state.fetchStatus = 'idle';
         state.items = action.payload;
       })
-      .addCase(fetchOrders.rejected, (state) => {
+      .addCase(fetchOrders.rejected, (state, action) => {
         state.fetchStatus = 'failed';
-        state.error = 'Unable to load orders';
-      })
-      // Create order
+        state.error = action.payload ?? 'Unable to load orders';
+      });
+
+    builder
       .addCase(createOrder.pending, (state) => {
         state.createStatus = 'loading';
         state.message = null;
@@ -91,8 +98,9 @@ const ordersSlice = createSlice({
       .addCase(createOrder.rejected, (state, action) => {
         state.createStatus = 'failed';
         state.error = action.payload ?? 'Unable to create order';
-      })
-      // Update order status
+      });
+
+    builder
       .addCase(updateOrderStatus.pending, (state) => {
         state.updateStatus = 'loading';
         state.message = null;
@@ -100,10 +108,8 @@ const ordersSlice = createSlice({
       })
       .addCase(updateOrderStatus.fulfilled, (state, action) => {
         state.updateStatus = 'idle';
-        const index = state.items.findIndex(o => o.id === action.payload.id);
-        if (index !== -1) {
-          state.items[index] = action.payload;
-        }
+        const idx = state.items.findIndex((o) => o.id === action.payload.id);
+        if (idx !== -1) state.items[idx] = action.payload;
         state.message = 'Order status updated';
       })
       .addCase(updateOrderStatus.rejected, (state, action) => {

@@ -1,10 +1,13 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { Product } from '../../types';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { Product, ProductFormData, ProductStatistics, PaginationState } from '../../types';
 import { productsService } from './productsService';
+import { RootState } from '../../app/store';
 
 interface ProductsState {
   items: Product[];
   selectedProduct: Product | null;
+  statistics: ProductStatistics | null;
+  pagination: PaginationState;
   fetchStatus: 'idle' | 'loading' | 'failed';
   createStatus: 'idle' | 'loading' | 'failed';
   updateStatus: 'idle' | 'loading' | 'failed';
@@ -16,6 +19,8 @@ interface ProductsState {
 const initialState: ProductsState = {
   items: [],
   selectedProduct: null,
+  statistics: null,
+  pagination: { page: 0, size: 12, total: 0, totalPages: 1 },
   fetchStatus: 'idle',
   createStatus: 'idle',
   updateStatus: 'idle',
@@ -24,43 +29,70 @@ const initialState: ProductsState = {
   error: null,
 };
 
-export const fetchProducts = createAsyncThunk(
-  'products/fetchProducts',
-  async () => productsService.getProducts()
-);
+// ─── Thunks ──────────────────────────────────────────────────────────────────
 
-export const fetchProductById = createAsyncThunk(
-  'products/fetchProductById',
-  async (id: string) => productsService.getProductById(id)
-);
-
-export const createProduct = createAsyncThunk
-  Product,
-  Omit<Product, 'id'>,
-  { rejectValue: string }
->('products/createProduct', async (payload, { rejectWithValue }) => {
+export const fetchProducts = createAsyncThunk<
+  { products: Product[]; statistics?: ProductStatistics },
+  void,
+  { state: RootState; rejectValue: string }
+>('products/fetchProducts', async (_, { getState, rejectWithValue }) => {
   try {
-    return await productsService.createProduct(payload);
+    const rawRole = getState().auth.user?.rawRole;
+    return await productsService.getProducts(rawRole);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to create product';
-    return rejectWithValue(message);
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to load products');
   }
 });
 
-export const updateProduct = createAsyncThunk
-  Product,
-  { id: string; data: Partial<Product> },
+export const searchProducts = createAsyncThunk<
+  Product[],
+  string,
   { rejectValue: string }
->('products/updateProduct', async ({ id, data }, { rejectWithValue }) => {
+>('products/searchProducts', async (keyword, { rejectWithValue }) => {
   try {
-    return await productsService.updateProduct(id, data);
+    return await productsService.searchProducts(keyword);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to update product';
-    return rejectWithValue(message);
+    return rejectWithValue(error instanceof Error ? error.message : 'Search failed');
   }
 });
 
-export const deleteProduct = createAsyncThunk
+export const fetchProductById = createAsyncThunk<
+  Product,
+  string,
+  { rejectValue: string }
+>('products/fetchProductById', async (id, { rejectWithValue }) => {
+  try {
+    return await productsService.getProductById(id);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to load product');
+  }
+});
+
+export const createProduct = createAsyncThunk<
+  Product,
+  { formData: ProductFormData; imageFile?: File | null },
+  { rejectValue: string }
+>('products/createProduct', async ({ formData, imageFile }, { rejectWithValue }) => {
+  try {
+    return await productsService.createProduct(formData, imageFile);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to create product');
+  }
+});
+
+export const updateProduct = createAsyncThunk<
+  Product,
+  { id: string; formData: ProductFormData; imageFile?: File | null },
+  { rejectValue: string }
+>('products/updateProduct', async ({ id, formData, imageFile }, { rejectWithValue }) => {
+  try {
+    return await productsService.updateProduct(id, formData, imageFile);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to update product');
+  }
+});
+
+export const deleteProduct = createAsyncThunk<
   string,
   string,
   { rejectValue: string }
@@ -69,10 +101,35 @@ export const deleteProduct = createAsyncThunk
     await productsService.deleteProduct(id);
     return id;
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to delete product';
-    return rejectWithValue(message);
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to delete product');
   }
 });
+
+export const updateProductStock = createAsyncThunk<
+  Product,
+  { id: string; quantity: number },
+  { rejectValue: string }
+>('products/updateStock', async ({ id, quantity }, { rejectWithValue }) => {
+  try {
+    return await productsService.updateStock(id, quantity);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to update stock');
+  }
+});
+
+export const toggleProductActive = createAsyncThunk<
+  Product,
+  string,
+  { rejectValue: string }
+>('products/toggleActive', async (id, { rejectWithValue }) => {
+  try {
+    return await productsService.toggleActive(id);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Unable to toggle status');
+  }
+});
+
+// ─── Slice ────────────────────────────────────────────────────────────────────
 
 const productsSlice = createSlice({
   name: 'products',
@@ -88,23 +145,53 @@ const productsSlice = createSlice({
     clearSelectedProduct(state) {
       state.selectedProduct = null;
     },
+    setPage(state, action: PayloadAction<number>) {
+      state.pagination.page = action.payload;
+    },
+    setPageSize(state, action: PayloadAction<number>) {
+      state.pagination.size = action.payload;
+      state.pagination.page = 0;
+    },
   },
   extraReducers: (builder) => {
+    // Fetch all
     builder
-      // Fetch all products
       .addCase(fetchProducts.pending, (state) => {
         state.fetchStatus = 'loading';
         state.error = null;
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.fetchStatus = 'idle';
+        state.items = action.payload.products;
+        if (action.payload.statistics) {
+          state.statistics = action.payload.statistics;
+        }
+        state.pagination.total = action.payload.products.length;
+        state.pagination.totalPages = Math.ceil(
+          action.payload.products.length / state.pagination.size
+        );
+      })
+      .addCase(fetchProducts.rejected, (state, action) => {
+        state.fetchStatus = 'failed';
+        state.error = action.payload ?? 'Unable to load products';
+      });
+
+    // Search
+    builder
+      .addCase(searchProducts.pending, (state) => {
+        state.fetchStatus = 'loading';
+      })
+      .addCase(searchProducts.fulfilled, (state, action) => {
+        state.fetchStatus = 'idle';
         state.items = action.payload;
       })
-      .addCase(fetchProducts.rejected, (state) => {
+      .addCase(searchProducts.rejected, (state, action) => {
         state.fetchStatus = 'failed';
-        state.error = 'Unable to load products';
-      })
-      // Fetch single product
+        state.error = action.payload ?? 'Search failed';
+      });
+
+    // Fetch single
+    builder
       .addCase(fetchProductById.pending, (state) => {
         state.fetchStatus = 'loading';
         state.error = null;
@@ -113,11 +200,13 @@ const productsSlice = createSlice({
         state.fetchStatus = 'idle';
         state.selectedProduct = action.payload;
       })
-      .addCase(fetchProductById.rejected, (state) => {
+      .addCase(fetchProductById.rejected, (state, action) => {
         state.fetchStatus = 'failed';
-        state.error = 'Unable to load product';
-      })
-      // Create product
+        state.error = action.payload ?? 'Unable to load product';
+      });
+
+    // Create
+    builder
       .addCase(createProduct.pending, (state) => {
         state.createStatus = 'loading';
         state.message = null;
@@ -131,8 +220,10 @@ const productsSlice = createSlice({
       .addCase(createProduct.rejected, (state, action) => {
         state.createStatus = 'failed';
         state.error = action.payload ?? 'Unable to create product';
-      })
-      // Update product
+      });
+
+    // Update
+    builder
       .addCase(updateProduct.pending, (state) => {
         state.updateStatus = 'loading';
         state.message = null;
@@ -140,17 +231,17 @@ const productsSlice = createSlice({
       })
       .addCase(updateProduct.fulfilled, (state, action) => {
         state.updateStatus = 'idle';
-        const index = state.items.findIndex(p => p.id === action.payload.id);
-        if (index !== -1) {
-          state.items[index] = action.payload;
-        }
+        const idx = state.items.findIndex((p) => p.id === action.payload.id);
+        if (idx !== -1) state.items[idx] = action.payload;
         state.message = 'Product updated successfully';
       })
       .addCase(updateProduct.rejected, (state, action) => {
         state.updateStatus = 'failed';
         state.error = action.payload ?? 'Unable to update product';
-      })
-      // Delete product
+      });
+
+    // Delete
+    builder
       .addCase(deleteProduct.pending, (state) => {
         state.deleteStatus = 'loading';
         state.message = null;
@@ -158,15 +249,36 @@ const productsSlice = createSlice({
       })
       .addCase(deleteProduct.fulfilled, (state, action) => {
         state.deleteStatus = 'idle';
-        state.items = state.items.filter(p => p.id !== action.payload);
+        state.items = state.items.filter((p) => p.id !== action.payload);
         state.message = 'Product deleted successfully';
       })
       .addCase(deleteProduct.rejected, (state, action) => {
         state.deleteStatus = 'failed';
         state.error = action.payload ?? 'Unable to delete product';
       });
+
+    // Stock update
+    builder
+      .addCase(updateProductStock.fulfilled, (state, action) => {
+        const idx = state.items.findIndex((p) => p.id === action.payload.id);
+        if (idx !== -1) state.items[idx] = action.payload;
+        state.message = 'Stock updated successfully';
+      });
+
+    // Toggle active
+    builder
+      .addCase(toggleProductActive.fulfilled, (state, action) => {
+        const idx = state.items.findIndex((p) => p.id === action.payload.id);
+        if (idx !== -1) state.items[idx] = action.payload;
+        state.message = 'Product status updated';
+      });
   },
 });
 
-export const { clearProductMessage, clearSelectedProduct } = productsSlice.actions;
+export const {
+  clearProductMessage,
+  clearSelectedProduct,
+  setPage,
+  setPageSize,
+} = productsSlice.actions;
 export default productsSlice.reducer;
