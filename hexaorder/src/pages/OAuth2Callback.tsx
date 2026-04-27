@@ -29,7 +29,7 @@ export default function OAuth2Callback() {
       return;
     }
 
-    // Store raw token
+    // Store raw token immediately
     authService.storeToken(token);
 
     // Build minimal user from URL params
@@ -48,10 +48,9 @@ export default function OAuth2Callback() {
     };
 
     authService.storeUser(mergedUser);
-    dispatch(setUser(mergedUser));
 
-    // Try to enrich with full profile
-    dispatch(fetchCurrentUser());
+    // Dispatch to Redux store
+    dispatch(loginSuccess(mergedUser));
 
     navigate('/dashboard', { replace: true });
   }, [searchParams, dispatch, navigate]);
@@ -80,11 +79,7 @@ export default function OAuth2Callback() {
     </div>
   );
 }
-function setUser(mergedUser: { name: string; id: string; email: string; role: UserRole; rawRole: RawRole; userType: UserType; avatarUrl: string; avatar: string; token?: string; createdAt: string; updatedAt: string; phoneNumber?: string; profilePicture?: string; }): any {
-    throw new Error('Function not implemented.');
-}
-
-function fetchCurrentUser(): any {
-    throw new Error('Function not implemented.');
+function loginSuccess(mergedUser: { name: string; id: string; email: string; role: UserRole; rawRole: RawRole; userType: UserType; avatarUrl: string; avatar: string; token?: string; createdAt: string; updatedAt: string; phoneNumber?: string; profilePicture?: string; }): any {
+  throw new Error('Function not implemented.');
 }
 

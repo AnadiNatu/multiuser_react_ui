@@ -176,27 +176,32 @@ export const API_ENDPOINTS = {
   PASSWORD_CHANGE: '/password/change',
   // Profile
   PROFILE_PHOTO: '/profile/photo',
-  // Products
+  // Products — ADMIN
   PRODUCT_ADMIN_CREATE: '/product/admin/create',
   PRODUCT_ADMIN_ALL: '/product/admin/all',
   PRODUCT_ADMIN_DELETE: (id: string) => `/product/admin/delete/${id}`,
+  // Products — ADMIN_TYPE1
   PRODUCT_AT1_UPDATE_STOCK: (id: string) => `/product/admin-type1/update-stock/${id}`,
   PRODUCT_AT1_LOW_STOCK: '/product/admin-type1/low-stock',
+  // Products — ADMIN_TYPE2
   PRODUCT_AT2_UPDATE_PRICE: (id: string) => `/product/admin-type2/update-price/${id}`,
   PRODUCT_AT2_CATEGORY: (cat: string) => `/product/admin-type2/category/${cat}`,
   PRODUCT_AT2_TOGGLE_ACTIVE: (id: string) => `/product/admin-type2/toggle-active/${id}`,
+  // Products — USER (basic)
   PRODUCT_USER_SEARCH: '/product/user/search',
   PRODUCT_USER_DETAILS: (id: string) => `/product/user/details/${id}`,
+  // Products — USER_TYPE1
   PRODUCT_UT1_CATEGORIES: '/product/user-type1/categories',
   PRODUCT_UT1_CATEGORY: (cat: string) => `/product/user-type1/category/${cat}`,
   PRODUCT_UT1_FEATURED: '/product/user-type1/featured',
+  // Products — USER_TYPE2
+  // NOTE: Backend SecurityConfig maps /api/product/user-type2/** (NOT /api/products/)
   PRODUCT_UT2_PRICE_RANGE: '/product/user-type2/price-range',
   PRODUCT_UT2_SORTED: '/product/user-type2/sorted',
   PRODUCT_UT2_COMPARE: '/product/user-type2/compare',
   // Dashboard
-  DASHBOARD_TYPE1: (role: string) => `/type1/${role}/dashboard`,
-  DASHBOARD_TYPE2: (role: string) => `/type2/${role}/dashboard`,
-  // Orders (to be built on backend)
+  DASHBOARD_STATS: '/dashboard/stats',
+  // Orders
   ORDERS_MY: '/orders/my',
   ORDERS_ADMIN_ALL: '/orders/admin/all',
   ORDERS_CREATE: '/orders/create',

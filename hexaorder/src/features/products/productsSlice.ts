@@ -40,21 +40,30 @@ export const fetchProducts = createAsyncThunk<
     const rawRole = getState().auth.user?.rawRole;
     return await productsService.getProducts(rawRole);
   } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : 'Unable to load products');
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Unable to load products'
+    );
   }
 });
 
 export const searchProducts = createAsyncThunk<
   Product[],
   string,
-  { rejectValue: string }
->('products/searchProducts', async (keyword, { rejectWithValue }) => {
-  try {
-    return await productsService.searchProducts(keyword);
-  } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : 'Search failed');
+  { state: RootState; rejectValue: string }
+>(
+  'products/searchProducts',
+  async (keyword, { getState, rejectWithValue }) => {
+    try {
+      // Pass rawRole so service can route to the correct endpoint per role
+      const rawRole = getState().auth.user?.rawRole;
+      return await productsService.searchProducts(keyword, rawRole);
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : 'Search failed'
+      );
+    }
   }
-});
+);
 
 export const fetchProductById = createAsyncThunk<
   Product,
@@ -64,7 +73,9 @@ export const fetchProductById = createAsyncThunk<
   try {
     return await productsService.getProductById(id);
   } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : 'Unable to load product');
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Unable to load product'
+    );
   }
 });
 
@@ -76,7 +87,9 @@ export const createProduct = createAsyncThunk<
   try {
     return await productsService.createProduct(formData, imageFile);
   } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : 'Unable to create product');
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Unable to create product'
+    );
   }
 });
 
@@ -88,7 +101,9 @@ export const updateProduct = createAsyncThunk<
   try {
     return await productsService.updateProduct(id, formData, imageFile);
   } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : 'Unable to update product');
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Unable to update product'
+    );
   }
 });
 
@@ -101,7 +116,9 @@ export const deleteProduct = createAsyncThunk<
     await productsService.deleteProduct(id);
     return id;
   } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : 'Unable to delete product');
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Unable to delete product'
+    );
   }
 });
 
@@ -113,7 +130,9 @@ export const updateProductStock = createAsyncThunk<
   try {
     return await productsService.updateStock(id, quantity);
   } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : 'Unable to update stock');
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Unable to update stock'
+    );
   }
 });
 
@@ -125,7 +144,9 @@ export const toggleProductActive = createAsyncThunk<
   try {
     return await productsService.toggleActive(id);
   } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : 'Unable to toggle status');
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Unable to toggle status'
+    );
   }
 });
 
@@ -184,6 +205,10 @@ const productsSlice = createSlice({
       .addCase(searchProducts.fulfilled, (state, action) => {
         state.fetchStatus = 'idle';
         state.items = action.payload;
+        state.pagination.total = action.payload.length;
+        state.pagination.totalPages = Math.ceil(
+          action.payload.length / state.pagination.size
+        );
       })
       .addCase(searchProducts.rejected, (state, action) => {
         state.fetchStatus = 'failed';
@@ -216,6 +241,10 @@ const productsSlice = createSlice({
         state.createStatus = 'idle';
         state.items = [action.payload, ...state.items];
         state.message = 'Product created successfully';
+        state.pagination.total += 1;
+        state.pagination.totalPages = Math.ceil(
+          state.pagination.total / state.pagination.size
+        );
       })
       .addCase(createProduct.rejected, (state, action) => {
         state.createStatus = 'failed';
@@ -233,6 +262,9 @@ const productsSlice = createSlice({
         state.updateStatus = 'idle';
         const idx = state.items.findIndex((p) => p.id === action.payload.id);
         if (idx !== -1) state.items[idx] = action.payload;
+        if (state.selectedProduct?.id === action.payload.id) {
+          state.selectedProduct = action.payload;
+        }
         state.message = 'Product updated successfully';
       })
       .addCase(updateProduct.rejected, (state, action) => {
@@ -251,6 +283,10 @@ const productsSlice = createSlice({
         state.deleteStatus = 'idle';
         state.items = state.items.filter((p) => p.id !== action.payload);
         state.message = 'Product deleted successfully';
+        state.pagination.total = Math.max(0, state.pagination.total - 1);
+        state.pagination.totalPages = Math.ceil(
+          state.pagination.total / state.pagination.size
+        );
       })
       .addCase(deleteProduct.rejected, (state, action) => {
         state.deleteStatus = 'failed';
@@ -258,20 +294,24 @@ const productsSlice = createSlice({
       });
 
     // Stock update
-    builder
-      .addCase(updateProductStock.fulfilled, (state, action) => {
-        const idx = state.items.findIndex((p) => p.id === action.payload.id);
-        if (idx !== -1) state.items[idx] = action.payload;
-        state.message = 'Stock updated successfully';
-      });
+    builder.addCase(updateProductStock.fulfilled, (state, action) => {
+      const idx = state.items.findIndex((p) => p.id === action.payload.id);
+      if (idx !== -1) state.items[idx] = action.payload;
+      if (state.selectedProduct?.id === action.payload.id) {
+        state.selectedProduct = action.payload;
+      }
+      state.message = 'Stock updated successfully';
+    });
 
     // Toggle active
-    builder
-      .addCase(toggleProductActive.fulfilled, (state, action) => {
-        const idx = state.items.findIndex((p) => p.id === action.payload.id);
-        if (idx !== -1) state.items[idx] = action.payload;
-        state.message = 'Product status updated';
-      });
+    builder.addCase(toggleProductActive.fulfilled, (state, action) => {
+      const idx = state.items.findIndex((p) => p.id === action.payload.id);
+      if (idx !== -1) state.items[idx] = action.payload;
+      if (state.selectedProduct?.id === action.payload.id) {
+        state.selectedProduct = action.payload;
+      }
+      state.message = 'Product status updated';
+    });
   },
 });
 

@@ -1,5 +1,5 @@
 export type UserRole = 'ADMIN' | 'USER';
- 
+
 // All 6 backend roles
 export type RawRole =
   | 'ADMIN'
@@ -8,9 +8,9 @@ export type RawRole =
   | 'USER'
   | 'USER_TYPE1'
   | 'USER_TYPE2';
- 
+
 export type UserType = 'TYPE1' | 'TYPE2';
- 
+
 export interface User {
   id: string;               // backend numeric id as string, or email as fallback
   name: string;             // fname + lname
@@ -26,19 +26,19 @@ export interface User {
   phoneNumber?: string;
   profilePicture?: string;
 }
- 
+
 export interface AuthState {
   user: User | null;
   token: string | null;
   status: 'idle' | 'loading' | 'success' | 'failed';
   error: string | null;
 }
- 
+
 export interface LoginCredentials {
   email: string;
   password: string;
 }
- 
+
 export interface SignUpRequest {
   fname: string;
   lname: string;
@@ -48,7 +48,7 @@ export interface SignUpRequest {
   userType: UserType;
   role: string;
 }
- 
+
 export interface SignUpResponse {
   id: number;
   fname: string;
@@ -58,19 +58,30 @@ export interface SignUpResponse {
   role: string;
   message: string;
 }
- 
+
+/**
+ * Matches the backend LoginResponse DTO exactly.
+ * Backend returns: token, username, userType, role, message,
+ * userId, firstName, lastName, profilePicture, phoneNumber
+ */
 export interface LoginResponse {
   token: string;
-  username: string;
-  userType: string;
-  role: string;
+  username: string;   // email used as username on backend
+  userType: string;   // TYPE1 | TYPE2
+  role: string;       // ADMIN | ADMIN_TYPE1 | ADMIN_TYPE2 | USER | USER_TYPE1 | USER_TYPE2
   message: string;
+  // enriched fields from backend LoginResponse
+  userId?: number;
+  firstName?: string;
+  lastName?: string;
+  profilePicture?: string;
+  phoneNumber?: string;
 }
- 
+
 export interface RegisterData extends LoginCredentials {
   name: string;
 }
- 
+
 // ==================== Product Types ====================
 export type ProductCategory =
   | 'Electronics'
@@ -84,7 +95,7 @@ export type ProductCategory =
   | 'Home'
   | 'Office Supplies'
   | 'Other';
- 
+
 export interface Product {
   id: string;
   name: string;
@@ -99,7 +110,7 @@ export interface Product {
   createdBy?: string;
   updatedBy?: string;
 }
- 
+
 // Raw backend product shape (before mapping)
 export interface BackendProduct {
   id: number;
@@ -115,7 +126,7 @@ export interface BackendProduct {
   createdBy: string;
   updatedBy: string;
 }
- 
+
 export interface ProductFormData {
   name: string;
   description: string;
@@ -124,7 +135,7 @@ export interface ProductFormData {
   stock: number;
   isActive?: boolean;
 }
- 
+
 export interface ProductsState {
   items: Product[];
   selectedProduct: Product | null;
@@ -137,7 +148,7 @@ export interface ProductsState {
   message: string | null;
   error: string | null;
 }
- 
+
 export interface ProductStatistics {
   totalProducts: number;
   activeProducts: number;
@@ -145,17 +156,17 @@ export interface ProductStatistics {
   totalInventoryValue: number;
   totalStock: number;
 }
- 
+
 export interface PaginationState {
   page: number;
   size: number;
   total: number;
   totalPages: number;
 }
- 
+
 // ==================== Order Types ====================
 export type OrderStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
- 
+
 export interface OrderItem {
   id: string;
   productId: string;
@@ -164,7 +175,7 @@ export interface OrderItem {
   price: number;
   subtotal: number;
 }
- 
+
 export interface Order {
   id: string;
   userId: string;
@@ -175,14 +186,18 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
 }
- 
+
+/**
+ * Payload for POST /api/orders/create
+ * productId must be sent as a number (Long on backend)
+ */
 export interface CreateOrderData {
   items: Array<{
-    productId: string;
+    productId: number;   // Long on backend — must be numeric
     quantity: number;
   }>;
 }
- 
+
 export interface OrdersState {
   items: Order[];
   selectedOrder: Order | null;
@@ -192,7 +207,7 @@ export interface OrdersState {
   error: string | null;
   message: string | null;
 }
- 
+
 // ==================== Dashboard Types ====================
 export interface DashboardStats {
   totalProducts: number;
@@ -202,24 +217,24 @@ export interface DashboardStats {
   completedOrders: number;
   activeProducts: number;
 }
- 
+
 export interface RevenueData {
   date: string;
   revenue: number;
 }
- 
+
 export interface OrdersData {
   date: string;
   orders: number;
 }
- 
+
 // ==================== API Response Types ====================
 export interface ApiResponse<T> {
   data: T;
   message?: string;
   success: boolean;
 }
- 
+
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
@@ -227,13 +242,13 @@ export interface PaginatedResponse<T> {
   limit: number;
   totalPages: number;
 }
- 
+
 export interface ApiError {
   message: string;
   statusCode: number;
   errors?: Record<string, string[]>;
 }
- 
+
 // ==================== UI Types ====================
 export interface Toast {
   id: string;
@@ -241,13 +256,13 @@ export interface Toast {
   type: 'success' | 'error' | 'warning' | 'info';
   duration?: number;
 }
- 
+
 export interface UiState {
   sidebarOpen: boolean;
   toasts: Toast[];
   theme: 'light' | 'dark';
 }
- 
+
 // ==================== Form Types ====================
 export interface FormField {
   name: string;
@@ -255,7 +270,7 @@ export interface FormField {
   error?: string;
   touched?: boolean;
 }
- 
+
 export interface FormState<T> {
   values: T;
   errors: Partial<Record<keyof T, string>>;
@@ -263,24 +278,24 @@ export interface FormState<T> {
   isSubmitting: boolean;
   isValid: boolean;
 }
- 
+
 // ==================== Table Types ====================
 export interface SortConfig {
   key: string;
   direction: 'asc' | 'desc';
 }
- 
+
 export interface FilterConfig {
   [key: string]: any;
 }
- 
+
 // ==================== Chart Types ====================
 export interface ChartDataPoint {
   label: string;
   value: number;
   [key: string]: any;
 }
- 
+
 export interface ChartConfig {
   type: 'line' | 'bar' | 'pie' | 'area';
   data: ChartDataPoint[];

@@ -4,17 +4,20 @@ import { Order } from '../../types';
 function mapBackendOrder(o: any): Order {
   return {
     id: String(o.id),
-    userId: o.userId || o.email || '',
+    userId: o.userId || o.userEmail || o.email || '',
     userName: o.userName || o.userEmail || '',
     items: (o.items || []).map((item: any) => ({
       id: String(item.id),
       productId: String(item.productId),
       productName: item.productName || '',
       quantity: item.quantity,
-      price: item.price,
-      subtotal: item.subtotal ?? item.price * item.quantity,
+      price: typeof item.price === 'string' ? parseFloat(item.price) : item.price,
+      subtotal: typeof item.subtotal === 'string'
+        ? parseFloat(item.subtotal)
+        : (item.subtotal ?? item.price * item.quantity),
     })),
-    totalAmount: typeof o.totalAmount === 'string' ? parseFloat(o.totalAmount) : o.totalAmount,
+    totalAmount:
+      typeof o.totalAmount === 'string' ? parseFloat(o.totalAmount) : o.totalAmount,
     status: o.status as Order['status'],
     createdAt: o.createdAt || new Date().toISOString(),
     updatedAt: o.updatedAt || new Date().toISOString(),
@@ -23,8 +26,8 @@ function mapBackendOrder(o: any): Order {
 
 export const ordersService = {
   /**
-   * Get orders — ADMIN sees all, users see their own
-   * Falls back to empty array if backend Order module not built yet
+   * Get orders — ADMIN sees all, users see their own.
+   * Falls back to empty array if Orders backend not built yet.
    */
   getOrders: async (rawRole?: string): Promise<Order[]> => {
     const adminRoles = ['ADMIN', 'ADMIN_TYPE1', 'ADMIN_TYPE2'];
@@ -37,8 +40,6 @@ export const ordersService = {
       if (!Array.isArray(list)) return [];
       return list.map(mapBackendOrder);
     } catch (err: any) {
-      // If the orders backend module doesn't exist yet, return empty array
-      // instead of crashing the whole app
       if (err.message?.includes('404') || err.message?.includes('500')) {
         console.warn('[ordersService] Orders API not yet available:', err.message);
         return [];
@@ -48,17 +49,27 @@ export const ordersService = {
   },
 
   /**
-   * Create order
+   * Create order.
+   * IMPORTANT: productId must be a number (Long on backend), not a string.
    */
   createOrder: async (
     payload: { items: Array<{ productId: string; quantity: number }> }
   ): Promise<Order> => {
-    const json = await apiService.post<any>(API_ENDPOINTS.ORDERS_CREATE, payload);
+    // Convert productId strings to numbers for backend compatibility
+    const backendPayload = {
+      items: payload.items.map((item) => ({
+        productId: Number(item.productId),
+        quantity: item.quantity,
+      })),
+    };
+
+    const json = await apiService.post<any>(API_ENDPOINTS.ORDERS_CREATE, backendPayload);
     return mapBackendOrder(json.order || json);
   },
 
   /**
-   * Update order status (ADMIN)
+   * Update order status (ADMIN).
+   * Backend endpoint: PUT /api/orders/admin/status/{id}?status=COMPLETED
    */
   updateOrderStatus: async (id: string, status: Order['status']): Promise<Order> => {
     const json = await apiService.put<any>(

@@ -42,13 +42,20 @@ export default function Dashboard() {
   const isAt1    = rawRole === 'ADMIN_TYPE1';
   const isUt1    = rawRole === 'USER_TYPE1';
 
-  // ── Dashboard greeting from backend ──────────────────────────────────
+  // ── Dashboard greeting from backend ──────────────────────────────────────
   const [fullName, setFullName] = useState('');
   useEffect(() => {
-    const roleSlug = rawRole.toLowerCase().replace('_', '-');
-    const endpoint = user?.userType === 'TYPE1'
-      ? `/type1/${roleSlug}/dashboard`
-      : `/type2/${roleSlug}/dashboard`;
+    if (!rawRole || !user) return;
+
+    // FIX: use replaceAll so every underscore becomes a hyphen
+    // ADMIN_TYPE1 → admin-type1, USER_TYPE1 → user-type1
+    // const roleSlug = rawRole.toLowerCase().replaceAll('_', '-');
+const roleSlug = rawRole.toLowerCase().replace(/_/g, '-');
+
+    // TYPE1 users → /api/type1/{role-slug}/dashboard
+    // TYPE2 users → /api/type2/{role-slug}/dashboard
+    const typePrefix = user.userType === 'TYPE1' ? 'type1' : 'type2';
+    const endpoint = `/${typePrefix}/${roleSlug}/dashboard`;
 
     apiService
       .get<{ fullName?: string; message?: string }>(endpoint)
@@ -56,29 +63,29 @@ export default function Dashboard() {
         if (res.fullName) setFullName(res.fullName);
       })
       .catch(() => {}); // Silently ignore if endpoint not yet available
-  }, [rawRole, user?.userType]);
+  }, [rawRole, user]);
 
-  // ── Low stock data (ADMIN_TYPE1) ──────────────────────────────────────
+  // ── Low stock data (ADMIN_TYPE1) ──────────────────────────────────────────
   const [lowStock, setLowStock] = useState<Product[]>([]);
   useEffect(() => {
     if (!isAt1) return;
     productsService.getLowStockProducts(10).then(setLowStock).catch(() => {});
   }, [isAt1]);
 
-  // ── Featured products (USER_TYPE1) ────────────────────────────────────
+  // ── Featured products (USER_TYPE1) ────────────────────────────────────────
   const [featured, setFeatured] = useState<Product[]>([]);
   useEffect(() => {
     if (!isUt1) return;
     productsService.getFeaturedProducts().then(setFeatured).catch(() => {});
   }, [isUt1]);
 
-  // ── Initial data fetch ────────────────────────────────────────────────
+  // ── Initial data fetch ────────────────────────────────────────────────────
   useEffect(() => {
     if (products.length === 0) dispatch(fetchProducts());
     if (orders.length === 0)   dispatch(fetchOrders());
   }, [dispatch]);
 
-  // ── Stats ─────────────────────────────────────────────────────────────
+  // ── Stats ─────────────────────────────────────────────────────────────────
   const totalRevenue = orders
     .filter((o) => o.status === 'COMPLETED')
     .reduce((sum, o) => sum + o.totalAmount, 0);
@@ -119,8 +126,12 @@ export default function Dashboard() {
     },
   ];
 
+  // For users, match by userId (stored as email fallback) or email
   const userOrders = orders.filter(
-    (o) => o.userId === user?.id || o.userId === user?.email
+    (o) =>
+      o.userId === user?.id ||
+      o.userId === user?.email ||
+      o.userName === user?.name
   );
 
   const userStats = [
@@ -134,7 +145,9 @@ export default function Dashboard() {
     {
       label: 'Total Spent',
       value: formatCurrency(
-        userOrders.filter((o) => o.status === 'COMPLETED').reduce((s, o) => s + o.totalAmount, 0)
+        userOrders
+          .filter((o) => o.status === 'COMPLETED')
+          .reduce((s, o) => s + o.totalAmount, 0)
       ),
       icon: DollarSign,
       color: 'bg-emerald-500',
@@ -246,7 +259,7 @@ export default function Dashboard() {
             >
               {orders.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-6">
-                  No orders yet — build the Orders backend to see data here.
+                  No orders yet.
                 </p>
               ) : (
                 <div className="space-y-3">

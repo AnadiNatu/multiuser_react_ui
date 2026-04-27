@@ -30,9 +30,18 @@ function mapProductList(json: any): Product[] {
 
 export const productsService = {
   /**
-   * Get products — endpoint varies by role
-   * ADMIN → /product/admin/all  (returns wrapper with statistics)
-   * USER/USER_TYPE1 → /product/user/search?keyword=
+   * Get products — endpoint varies by role.
+   *
+   * ADMIN              → /product/admin/all       (returns wrapper + statistics)
+   * ADMIN_TYPE1        → /product/admin/all       (same admin view)
+   * ADMIN_TYPE2        → /product/admin/all       (same admin view)
+   * USER               → /product/user/search?keyword=
+   * USER_TYPE1         → /product/user-type1/categories then featured as fallback;
+   *                      for the full list we use /product/user-type1/featured
+   *                      combined with category search — simplest: reuse user search
+   *                      NOTE: USER_TYPE1 does NOT have /product/user/search access,
+   *                      so we call /product/user-type1/featured for the initial list.
+   * USER_TYPE2         → /product/user-type2/sorted?order=asc  (default sorted list)
    */
   getProducts: async (rawRole?: string): Promise<{ products: Product[]; statistics?: any }> => {
     const adminRoles = ['ADMIN', 'ADMIN_TYPE1', 'ADMIN_TYPE2'];
@@ -46,15 +55,57 @@ export const productsService = {
       };
     }
 
-    // Default: user search with empty keyword returns all active
+    if (rawRole === 'USER_TYPE1') {
+      // USER_TYPE1 uses /product/user-type1/featured for homepage listing
+      const json = await apiService.get<any>(API_ENDPOINTS.PRODUCT_UT1_FEATURED);
+      return { products: mapProductList(json) };
+    }
+
+    if (rawRole === 'USER_TYPE2') {
+      // USER_TYPE2 uses sorted endpoint as their default product list
+      const json = await apiService.get<any>(`${API_ENDPOINTS.PRODUCT_UT2_SORTED}?order=asc`);
+      return { products: mapProductList(json) };
+    }
+
+    // Default: USER (basic) — keyword search with empty string returns all active
     const json = await apiService.get<any>(`${API_ENDPOINTS.PRODUCT_USER_SEARCH}?keyword=`);
     return { products: mapProductList(json) };
   },
 
   /**
-   * Search products by keyword — /product/user/search?keyword=
+   * Search products by keyword.
+   * USER               → /product/user/search?keyword=
+   * USER_TYPE1         → /product/user-type1/category (no keyword search endpoint,
+   *                      fallback: filter client-side from featured list)
+   * USER_TYPE2         → /product/user-type2/sorted (no keyword endpoint,
+   *                      filter client-side)
+   * ADMIN*             → /product/admin/all then filter client-side
    */
-  searchProducts: async (keyword: string): Promise<Product[]> => {
+  searchProducts: async (keyword: string, rawRole?: string): Promise<Product[]> => {
+    const adminRoles = ['ADMIN', 'ADMIN_TYPE1', 'ADMIN_TYPE2'];
+
+    if (rawRole && adminRoles.includes(rawRole)) {
+      // Admin: get all and filter client-side (backend has no admin search endpoint)
+      const json = await apiService.get<any>(API_ENDPOINTS.PRODUCT_ADMIN_ALL);
+      const all = mapProductList(json);
+      return all.filter(
+        (p) =>
+          p.name.toLowerCase().includes(keyword.toLowerCase()) ||
+          (p.description || '').toLowerCase().includes(keyword.toLowerCase())
+      );
+    }
+
+    if (rawRole === 'USER_TYPE1' || rawRole === 'USER_TYPE2') {
+      // These roles have no keyword search endpoint — filter from their default list
+      const { products } = await productsService.getProducts(rawRole);
+      return products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(keyword.toLowerCase()) ||
+          (p.description || '').toLowerCase().includes(keyword.toLowerCase())
+      );
+    }
+
+    // USER (basic) — direct keyword search
     const json = await apiService.get<any>(
       `${API_ENDPOINTS.PRODUCT_USER_SEARCH}?keyword=${encodeURIComponent(keyword)}`
     );
@@ -62,7 +113,10 @@ export const productsService = {
   },
 
   /**
-   * Get product by id — /product/user/details/{id}
+   * Get product by id.
+   * All roles use /product/user/details/{id} for view.
+   * Admins can also use this — they have access via anyRequest().authenticated()
+   * but to be safe we use the user details endpoint for all roles.
    */
   getProductById: async (id: string): Promise<Product> => {
     const json = await apiService.get<BackendProduct>(API_ENDPOINTS.PRODUCT_USER_DETAILS(id));
@@ -70,7 +124,7 @@ export const productsService = {
   },
 
   /**
-   * Create product — POST /product/admin/create (multipart)
+   * Create product — POST /product/admin/create (multipart, ADMIN only)
    */
   createProduct: async (formData: ProductFormData, imageFile?: File | null): Promise<Product> => {
     const fd = new FormData();
@@ -80,7 +134,7 @@ export const productsService = {
         name: formData.name,
         description: formData.description,
         price: formData.price,
-        stockQuantity: formData.stock,
+        stockQuantity: formData.stock,   // frontend uses 'stock', backend expects 'stockQuantity'
         category: formData.category,
         isActive: formData.isActive ?? true,
       })
@@ -108,7 +162,7 @@ export const productsService = {
         name: formData.name,
         description: formData.description,
         price: formData.price,
-        stockQuantity: formData.stock,
+        stockQuantity: formData.stock,   // map stock → stockQuantity
         category: formData.category,
         isActive: formData.isActive ?? true,
       })
@@ -133,15 +187,28 @@ export const productsService = {
   },
 
   /**
-   * Get products by category
+   * Get products by category.
+   * ADMIN_TYPE2 → /product/admin-type2/category/{category}
+   * USER_TYPE1  → /product/user-type1/category/{category}
    */
   getProductsByCategory: async (category: string, rawRole?: string): Promise<Product[]> => {
-    const adminRoles = ['ADMIN', 'ADMIN_TYPE1', 'ADMIN_TYPE2'];
-    const isAdmin = rawRole && adminRoles.includes(rawRole);
+    const adminType2Roles = ['ADMIN', 'ADMIN_TYPE2'];
+    const adminType1Roles = ['ADMIN_TYPE1'];
 
-    const endpoint = isAdmin
-      ? API_ENDPOINTS.PRODUCT_AT2_CATEGORY(category)
-      : API_ENDPOINTS.PRODUCT_UT1_CATEGORY(category);
+    let endpoint: string;
+
+    if (rawRole && adminType2Roles.includes(rawRole)) {
+      endpoint = API_ENDPOINTS.PRODUCT_AT2_CATEGORY(category);
+    } else if (rawRole && adminType1Roles.includes(rawRole)) {
+      // ADMIN_TYPE1 doesn't have a category endpoint — use admin-type2 category view
+      endpoint = API_ENDPOINTS.PRODUCT_AT2_CATEGORY(category);
+    } else if (rawRole === 'USER_TYPE1') {
+      endpoint = API_ENDPOINTS.PRODUCT_UT1_CATEGORY(category);
+    } else {
+      // USER / USER_TYPE2 — filter from their list client-side
+      const { products } = await productsService.getProducts(rawRole);
+      return products.filter((p) => p.category === category);
+    }
 
     const json = await apiService.get<any>(endpoint);
     return mapProductList(json);
@@ -167,7 +234,7 @@ export const productsService = {
   },
 
   /**
-   * Products by price range
+   * Products by price range — /product/user-type2/price-range
    */
   getProductsByPriceRange: async (minPrice: number, maxPrice: number): Promise<Product[]> => {
     const json = await apiService.get<any>(
@@ -177,7 +244,7 @@ export const productsService = {
   },
 
   /**
-   * Products sorted by price
+   * Products sorted by price — /product/user-type2/sorted
    */
   getProductsSortedByPrice: async (order: 'asc' | 'desc' = 'asc'): Promise<Product[]> => {
     const json = await apiService.get<any>(`${API_ENDPOINTS.PRODUCT_UT2_SORTED}?order=${order}`);
@@ -185,7 +252,8 @@ export const productsService = {
   },
 
   /**
-   * Compare products (USER_TYPE2)
+   * Compare products — /product/user-type2/compare
+   * Sends numeric IDs (Long on backend)
    */
   compareProducts: async (ids: string[]): Promise<Product[]> => {
     const numericIds = ids.map(Number);
@@ -194,9 +262,9 @@ export const productsService = {
   },
 
   /**
-   * Update stock (ADMIN_TYPE1)
+   * Update stock — /product/admin-type1/update-stock/{id}?quantity=N
    */
-  updateStock: async (id: string, quantity: number, updatedBy?: string): Promise<Product> => {
+  updateStock: async (id: string, quantity: number): Promise<Product> => {
     const json = await apiService.put<any>(
       `${API_ENDPOINTS.PRODUCT_AT1_UPDATE_STOCK(id)}?quantity=${quantity}`
     );
@@ -204,7 +272,7 @@ export const productsService = {
   },
 
   /**
-   * Toggle active/inactive (ADMIN_TYPE2)
+   * Toggle active/inactive — /product/admin-type2/toggle-active/{id}
    */
   toggleActive: async (id: string): Promise<Product> => {
     const json = await apiService.patch<any>(API_ENDPOINTS.PRODUCT_AT2_TOGGLE_ACTIVE(id));
@@ -212,7 +280,7 @@ export const productsService = {
   },
 
   /**
-   * Low stock products (ADMIN_TYPE1)
+   * Low stock products — /product/admin-type1/low-stock
    */
   getLowStockProducts: async (threshold = 10): Promise<Product[]> => {
     const json = await apiService.get<any>(

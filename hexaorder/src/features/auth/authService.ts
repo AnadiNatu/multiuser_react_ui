@@ -1,6 +1,6 @@
 import { API_ENDPOINTS, apiService } from '@/services/apiService';
-import { User, LoginResponse, SignUpRequest, SignUpResponse, RawRole, UserType } from '../../types';
-// import { apiService, API_ENDPOINTS } from 
+import { User, LoginResponse, RawRole, UserType, SignUpRequest, SignUpResponse } from '@/types';
+
 
 const SESSION_STORAGE_KEY = 'hexaorder.session';
 const TOKEN_KEY = 'auth_token';
@@ -20,19 +20,28 @@ export function mapRole(rawRole: string): 'ADMIN' | 'USER' {
 }
 
 /**
- * Map backend LoginResponse to frontend User shape
+ * Map backend LoginResponse to frontend User shape.
+ * Backend now returns: token, username, userType, role, message,
+ * userId, firstName, lastName, profilePicture, phoneNumber
  */
 export function mapLoginResponseToUser(json: LoginResponse): User {
+  const fullName =
+    json.firstName && json.lastName
+      ? `${json.firstName} ${json.lastName}`.trim()
+      : json.firstName || json.username;
+
   return {
-    id: json.username,           // will be replaced by /me call
-    name: json.username,         // will be replaced by /me call
+    id: json.userId ? String(json.userId) : json.username,
+    name: fullName,
     email: json.username,
     role: mapRole(json.role),
     rawRole: json.role as RawRole,
     userType: json.userType as UserType,
-    avatarUrl: '',
-    avatar: '',
+    avatarUrl: json.profilePicture || '',
+    avatar: json.profilePicture || '',
     token: json.token,
+    phoneNumber: json.phoneNumber,
+    profilePicture: json.profilePicture,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -105,11 +114,10 @@ export const authService = {
       throw new Error(json.message || 'Login failed');
     }
 
-    // Store token immediately so subsequent calls work
+    // Store token immediately so subsequent /me call works
     authService.storeToken(json.token);
 
-    const user = mapLoginResponseToUser(json);
-    return user;
+    return mapLoginResponseToUser(json);
   },
 
   /**

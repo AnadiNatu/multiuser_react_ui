@@ -14,16 +14,17 @@ const initialState: AuthState = {
   error: null,
 };
 
-//
-// ✅ EMAIL LOGIN
-//
+// ── EMAIL LOGIN
 export const loginUser = createAsyncThunk<
   User,
   { email: string; password: string },
   { rejectValue: string }
 >('auth/loginUser', async (credentials, { rejectWithValue }) => {
   try {
-    return await authService.login(credentials.email, credentials.password);
+    const user = await authService.login(credentials.email, credentials.password);
+    // Enrich with /me profile data
+    const meData = await authService.fetchMe();
+    return { ...user, ...meData };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unable to log in';
@@ -31,9 +32,7 @@ export const loginUser = createAsyncThunk<
   }
 });
 
-//
-// ✅ PHONE LOGIN
-//
+// ── PHONE LOGIN
 export const phoneLogin = createAsyncThunk<
   User,
   { phone: string; otp: string },
@@ -48,9 +47,7 @@ export const phoneLogin = createAsyncThunk<
   }
 });
 
-//
-// ✅ SIGNUP (NEW - FIXES YOUR ERROR)
-//
+// ── SIGNUP
 export const signupUser = createAsyncThunk<
   void,
   SignUpRequest,
@@ -65,9 +62,6 @@ export const signupUser = createAsyncThunk<
   }
 });
 
-//
-// ✅ SLICE
-//
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -85,14 +79,19 @@ const authSlice = createSlice({
         authService.storeUser(state.user);
       }
     },
+
+    // Used by OAuth2 callback to inject user directly
+    loginSuccess(state, action: PayloadAction<User>) {
+      state.status = 'idle';
+      state.user = action.payload;
+      state.error = null;
+      authService.storeUser(action.payload);
+    },
   },
 
   extraReducers: (builder) => {
     builder
-
-      //
-      // 🔵 EMAIL LOGIN
-      //
+      // EMAIL LOGIN
       .addCase(loginUser.pending, (state) => {
         state.status = 'loading';
         state.error = null;
@@ -108,9 +107,7 @@ const authSlice = createSlice({
         state.error = action.payload ?? 'Unable to log in';
       })
 
-      //
-      // 🟢 PHONE LOGIN
-      //
+      // PHONE LOGIN
       .addCase(phoneLogin.pending, (state) => {
         state.status = 'loading';
         state.error = null;
@@ -126,9 +123,7 @@ const authSlice = createSlice({
         state.error = action.payload ?? 'OTP login failed';
       })
 
-      //
-      // 🟡 SIGNUP
-      //
+      // SIGNUP
       .addCase(signupUser.pending, (state) => {
         state.status = 'loading';
         state.error = null;
@@ -144,5 +139,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logoutUser, updateUser } = authSlice.actions;
+export const { logoutUser, updateUser, loginSuccess } = authSlice.actions;
 export default authSlice.reducer;
