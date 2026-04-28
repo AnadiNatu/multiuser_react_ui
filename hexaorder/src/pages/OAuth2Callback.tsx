@@ -2,21 +2,21 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '../app/hooks';
 import { authService, mapLoginResponseToUser } from '../features/auth/authService';
+import { loginSuccess } from '../features/auth/authSlice';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { Alert } from '../components/ui/Alert';
 import { Widget } from '../components/ui/Widget';
-import { UserRole, RawRole, UserType } from '@/types';
 
 export default function OAuth2Callback() {
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const navigate       = useNavigate();
+  const dispatch       = useAppDispatch();
   const [searchParams] = useSearchParams();
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const email = searchParams.get('email');
-    const name = searchParams.get('name');
+    const token    = searchParams.get('token');
+    const email    = searchParams.get('email');
+    const name     = searchParams.get('name');
     const urlError = searchParams.get('error');
 
     if (urlError) {
@@ -41,17 +41,13 @@ export default function OAuth2Callback() {
       message: 'OAuth2 login',
     });
 
-    // Override name if provided
     const mergedUser = {
       ...user,
       name: name ? decodeURIComponent(name) : email,
     };
 
     authService.storeUser(mergedUser);
-
-    // Dispatch to Redux store
     dispatch(loginSuccess(mergedUser));
-
     navigate('/dashboard', { replace: true });
   }, [searchParams, dispatch, navigate]);
 
@@ -79,7 +75,3 @@ export default function OAuth2Callback() {
     </div>
   );
 }
-function loginSuccess(mergedUser: { name: string; id: string; email: string; role: UserRole; rawRole: RawRole; userType: UserType; avatarUrl: string; avatar: string; token?: string; createdAt: string; updatedAt: string; phoneNumber?: string; profilePicture?: string; }): any {
-  throw new Error('Function not implemented.');
-}
-
