@@ -1,30 +1,20 @@
-/**
- * Storage utilities for managing localStorage and sessionStorage
- * Provides type-safe storage with automatic serialization/deserialization
- */
 
 type StorageType = 'local' | 'session';
 
 class StorageService {
   private prefix: string = 'hexaorder_';
 
-  /**
-   * Get storage instance based on type
-   */
+  //Get storage instance based on type
   private getStorage(type: StorageType): Storage {
     return type === 'local' ? localStorage : sessionStorage;
   }
 
-  /**
-   * Get prefixed key
-   */
+  //Get prefixed key
   private getPrefixedKey(key: string): string {
     return `${this.prefix}${key}`;
   }
 
-  /**
-   * Set item in storage
-   */
+  //Set item in storage
   set<T>(key: string, value: T, type: StorageType = 'local'): boolean {
     try {
       const storage = this.getStorage(type);
@@ -38,9 +28,7 @@ class StorageService {
     }
   }
 
-  /**
-   * Get item from storage
-   */
+  //Get item from storage
   get<T>(key: string, type: StorageType = 'local'): T | null {
     try {
       const storage = this.getStorage(type);
@@ -56,9 +44,7 @@ class StorageService {
     }
   }
 
-  /**
-   * Remove item from storage
-   */
+  //Remove item from storage
   remove(key: string, type: StorageType = 'local'): boolean {
     try {
       const storage = this.getStorage(type);
@@ -71,9 +57,7 @@ class StorageService {
     }
   }
 
-  /**
-   * Clear all items with prefix
-   */
+  //Clear all items with prefix
   clear(type: StorageType = 'local'): boolean {
     try {
       const storage = this.getStorage(type);
@@ -92,18 +76,14 @@ class StorageService {
     }
   }
 
-  /**
-   * Check if key exists
-   */
+  //Check if key exists
   has(key: string, type: StorageType = 'local'): boolean {
     const storage = this.getStorage(type);
     const prefixedKey = this.getPrefixedKey(key);
     return storage.getItem(prefixedKey) !== null;
   }
 
-  /**
-   * Get all keys with prefix
-   */
+  //Get all keys with prefix
   keys(type: StorageType = 'local'): string[] {
     const storage = this.getStorage(type);
     const allKeys = Object.keys(storage);
@@ -113,9 +93,7 @@ class StorageService {
       .map((key) => key.replace(this.prefix, ''));
   }
 
-  /**
-   * Get storage size in bytes
-   */
+  //Get storage size in bytes
   getSize(type: StorageType = 'local'): number {
     const storage = this.getStorage(type);
     let size = 0;
@@ -132,9 +110,7 @@ class StorageService {
     return size;
   }
 
-  /**
-   * Get remaining storage capacity (approximate)
-   */
+  //Get remaining storage capacity (approximate)
   getRemainingCapacity(type: StorageType = 'local'): number {
     const storage = this.getStorage(type);
     const maxSize = 5 * 1024 * 1024; // 5MB (typical localStorage limit)

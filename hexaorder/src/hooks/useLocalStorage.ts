@@ -1,9 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 
-/**
- * Custom hook for managing state in localStorage
- * Automatically syncs state with localStorage and handles serialization
- */
 export function useLocalStorage<T>(
   key: string,
   initialValue: T

@@ -1,6 +1,6 @@
 export type UserRole = 'ADMIN' | 'USER';
 
-// All 6 backend roles
+// 6 backend roles
 export type RawRole =
   | 'ADMIN'
   | 'ADMIN_TYPE1'
@@ -59,11 +59,7 @@ export interface SignUpResponse {
   message: string;
 }
 
-/**
- * Matches the backend LoginResponse DTO exactly.
- * Backend returns: token, username, userType, role, message,
- * userId, firstName, lastName, profilePicture, phoneNumber
- */
+
 export interface LoginResponse {
   token: string;
   username: string;   // email used as username on backend
@@ -82,7 +78,7 @@ export interface RegisterData extends LoginCredentials {
   name: string;
 }
 
-// ==================== Product Types ====================
+// Product Types 
 export type ProductCategory =
   | 'Electronics'
   | 'Clothing'
@@ -164,7 +160,7 @@ export interface PaginationState {
   totalPages: number;
 }
 
-// ==================== Order Types ====================
+// Order Types 
 export type OrderStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
 
 export interface OrderItem {
@@ -187,10 +183,7 @@ export interface Order {
   updatedAt: string;
 }
 
-/**
- * Payload for POST /api/orders/create
- * productId must be sent as a number (Long on backend)
- */
+//Payload for POST /api/orders/create
 export interface CreateOrderData {
   items: Array<{
     productId: number;   // Long on backend — must be numeric
@@ -208,7 +201,7 @@ export interface OrdersState {
   message: string | null;
 }
 
-// ==================== Dashboard Types ====================
+// Dashboard Types 
 export interface DashboardStats {
   totalProducts: number;
   totalOrders: number;
@@ -228,7 +221,7 @@ export interface OrdersData {
   orders: number;
 }
 
-// ==================== API Response Types ====================
+// API Response Types 
 export interface ApiResponse<T> {
   data: T;
   message?: string;
@@ -249,7 +242,7 @@ export interface ApiError {
   errors?: Record<string, string[]>;
 }
 
-// ==================== UI Types ====================
+// UI Types 
 export interface Toast {
   id: string;
   message: string;
@@ -263,7 +256,7 @@ export interface UiState {
   theme: 'light' | 'dark';
 }
 
-// ==================== Form Types ====================
+// Form Types
 export interface FormField {
   name: string;
   value: any;
@@ -279,7 +272,7 @@ export interface FormState<T> {
   isValid: boolean;
 }
 
-// ==================== Table Types ====================
+//  Table Types
 export interface SortConfig {
   key: string;
   direction: 'asc' | 'desc';
@@ -289,7 +282,7 @@ export interface FilterConfig {
   [key: string]: any;
 }
 
-// ==================== Chart Types ====================
+// Chart Types 
 export interface ChartDataPoint {
   label: string;
   value: number;

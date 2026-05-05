@@ -25,17 +25,17 @@ const wrap = (C: React.LazyExoticComponent<() => JSX.Element>) => (
 );
 
 export const routes: RouteObject[] = [
-  // ── Root redirect ────────────────────────────────────────────────────────
+  // Root redirect 
   { path: '/', element: <Navigate to="/dashboard" replace /> },
 
-  // ── Public routes ────────────────────────────────────────────────────────
+  //  Public routes
   { path: '/login',           element: wrap(Login) },
   { path: '/signup',          element: wrap(Signup) },
   { path: '/forgot-password', element: wrap(ForgotPassword) },
   { path: '/oauth2/callback', element: wrap(OAuth2Callback) },
   { path: '/phone-login',     element: wrap(PhoneLogin) },
 
-  // ── Authenticated routes (any logged-in user) ────────────────────────────
+  // Authenticated routes (any logged-in user) 
   {
     element: <ProtectedRoute />,
     children: [
@@ -47,8 +47,8 @@ export const routes: RouteObject[] = [
     ],
   },
 
-  // ── Admin-only routes ────────────────────────────────────────────────────
-  {
+  // Admin-only routes 
+    {
     element: (
       <RoleProtectedRoute allowedRoles={['ADMIN', 'ADMIN_TYPE1', 'ADMIN_TYPE2']} />
     ),
@@ -58,7 +58,7 @@ export const routes: RouteObject[] = [
     ],
   },
 
-  // ── Catch-all ────────────────────────────────────────────────────────────
+  // Catch-all
   { path: '*', element: <Navigate to="/dashboard" replace /> },
 ];
 

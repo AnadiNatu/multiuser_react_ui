@@ -11,19 +11,12 @@ interface Session {
   expiresAt: string;
 }
 
-/**
- * Map backend role string to frontend UserRole ('ADMIN' | 'USER')
- */
+//Map backend role string to frontend UserRole ('ADMIN' | 'USER')
 export function mapRole(rawRole: string): 'ADMIN' | 'USER' {
   const adminRoles = ['ADMIN', 'ADMIN_TYPE1', 'ADMIN_TYPE2'];
   return adminRoles.includes(rawRole) ? 'ADMIN' : 'USER';
 }
 
-/**
- * Map backend LoginResponse to frontend User shape.
- * Backend now returns: token, username, userType, role, message,
- * userId, firstName, lastName, profilePicture, phoneNumber
- */
 export function mapLoginResponseToUser(json: LoginResponse): User {
   const fullName =
     json.firstName && json.lastName
@@ -101,10 +94,8 @@ export const authService = {
     }
   },
 
-  /**
-   * Real login — POST /api/auth/login
-   */
-  login: async (email: string, password: string): Promise<User> => {
+  // POST /api/auth/login
+     login: async (email: string, password: string): Promise<User> => {
     const json = await apiService.post<LoginResponse>(API_ENDPOINTS.LOGIN, {
       username: email,   // backend field is "username"
       password,
@@ -120,10 +111,6 @@ export const authService = {
     return mapLoginResponseToUser(json);
   },
 
-  /**
-   * Fetch full profile from GET /api/auth/me
-   * Falls back gracefully if endpoint not yet implemented on backend
-   */
   fetchMe: async (): Promise<Partial<User>> => {
     try {
       const json = await apiService.get<any>(API_ENDPOINTS.ME);
@@ -136,28 +123,22 @@ export const authService = {
         avatar: json.profilePicture || '',
       };
     } catch {
-      // /me not yet implemented — return empty so app still works
       return {};
     }
   },
 
-  /**
-   * Sign up — POST /api/auth/signup
-   */
+  //Sign up — POST /api/auth/signup
+   
   signup: async (data: SignUpRequest): Promise<SignUpResponse> => {
     return apiService.post<SignUpResponse>(API_ENDPOINTS.SIGNUP, data);
   },
 
-  /**
-   * Send phone OTP
-   */
+  //Send phone OTP
   sendPhoneOtp: async (phone: string): Promise<{ message: string }> => {
     return apiService.postQuery(API_ENDPOINTS.PHONE_SEND_OTP, { phone });
   },
 
-  /**
-   * Verify phone OTP and login
-   */
+  //Verify phone OTP and login
   verifyPhoneOtp: async (phone: string, otp: string): Promise<User> => {
     const json = await apiService.postQuery<LoginResponse & { email: string }>(
       API_ENDPOINTS.PHONE_VERIFY_OTP,

@@ -25,10 +25,7 @@ function mapBackendOrder(o: any): Order {
 }
 
 export const ordersService = {
-  /**
-   * Get orders — ADMIN sees all, users see their own.
-   * Falls back to empty array if Orders backend not built yet.
-   */
+  //Get orders — ADMIN sees all, users see their own
   getOrders: async (rawRole?: string): Promise<Order[]> => {
     const adminRoles = ['ADMIN', 'ADMIN_TYPE1', 'ADMIN_TYPE2'];
     const isAdmin = rawRole && adminRoles.includes(rawRole);
@@ -48,10 +45,7 @@ export const ordersService = {
     }
   },
 
-  /**
-   * Create order.
-   * IMPORTANT: productId must be a number (Long on backend), not a string.
-   */
+  // Create order.
   createOrder: async (
     payload: { items: Array<{ productId: string; quantity: number }> }
   ): Promise<Order> => {
@@ -67,10 +61,7 @@ export const ordersService = {
     return mapBackendOrder(json.order || json);
   },
 
-  /**
-   * Update order status (ADMIN).
-   * Backend endpoint: PUT /api/orders/admin/status/{id}?status=COMPLETED
-   */
+  // Update order status (ADMIN) PUT /api/orders/admin/status/{id}?status=COMPLETED
   updateOrderStatus: async (id: string, status: Order['status']): Promise<Order> => {
     const json = await apiService.put<any>(
       `${API_ENDPOINTS.ORDER_STATUS(id)}?status=${status}`

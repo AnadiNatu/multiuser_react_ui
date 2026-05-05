@@ -1,8 +1,7 @@
 import { apiService, API_ENDPOINTS } from '@/services/apiService';
 import { Product, BackendProduct, ProductFormData } from '../../types';
 
-// ─── Mapper ──────────────────────────────────────────────────────────────────
-
+// Mapper 
 export function mapBackendProduct(p: BackendProduct | any): Product {
   return {
     id: String(p.id),
@@ -26,8 +25,7 @@ function mapProductList(json: any): Product[] {
   return raw.map(mapBackendProduct);
 }
 
-// ─── Service ─────────────────────────────────────────────────────────────────
-
+// Service 
 export const productsService = {
   /**
    * Get products — endpoint varies by role.
@@ -67,7 +65,7 @@ export const productsService = {
       return { products: mapProductList(json) };
     }
 
-    // Default: USER (basic) — keyword search with empty string returns all active
+    // USER (basic) — keyword search with empty string returns all active
     const json = await apiService.get<any>(`${API_ENDPOINTS.PRODUCT_USER_SEARCH}?keyword=`);
     return { products: mapProductList(json) };
   },
@@ -112,20 +110,14 @@ export const productsService = {
     return mapProductList(json);
   },
 
-  /**
-   * Get product by id.
-   * All roles use /product/user/details/{id} for view.
-   * Admins can also use this — they have access via anyRequest().authenticated()
-   * but to be safe we use the user details endpoint for all roles.
-   */
+  //Get product by id.
+   // All roles  /product/user/details/{id} 
   getProductById: async (id: string): Promise<Product> => {
     const json = await apiService.get<BackendProduct>(API_ENDPOINTS.PRODUCT_USER_DETAILS(id));
     return mapBackendProduct(json);
   },
 
-  /**
-   * Create product — POST /product/admin/create (multipart, ADMIN only)
-   */
+  //Create product — POST /product/admin/create (multipart, ADMIN only)
   createProduct: async (formData: ProductFormData, imageFile?: File | null): Promise<Product> => {
     const fd = new FormData();
     fd.append(
@@ -147,9 +139,8 @@ export const productsService = {
     return mapBackendProduct(json.product || json);
   },
 
-  /**
-   * Update product — PUT /product/admin-type2/update-price/{id} (multipart)
-   */
+  //Update product — PUT /product/admin-type2/update-price/{id} (multipart)
+   
   updateProduct: async (
     id: string,
     formData: ProductFormData,
@@ -179,18 +170,14 @@ export const productsService = {
     return mapBackendProduct(json.product || json);
   },
 
-  /**
-   * Delete product — DELETE /product/admin/delete/{id}
-   */
+  //Delete product — DELETE /product/admin/delete/{id}
   deleteProduct: async (id: string): Promise<void> => {
     await apiService.delete(API_ENDPOINTS.PRODUCT_ADMIN_DELETE(id));
   },
 
-  /**
-   * Get products by category.
-   * ADMIN_TYPE2 → /product/admin-type2/category/{category}
-   * USER_TYPE1  → /product/user-type1/category/{category}
-   */
+   //Get products by category.
+   //ADMIN_TYPE2 → /product/admin-type2/category/{category}
+   //USER_TYPE1  → /product/user-type1/category/{category}
   getProductsByCategory: async (category: string, rawRole?: string): Promise<Product[]> => {
     const adminType2Roles = ['ADMIN', 'ADMIN_TYPE2'];
     const adminType1Roles = ['ADMIN_TYPE1'];
@@ -214,9 +201,7 @@ export const productsService = {
     return mapProductList(json);
   },
 
-  /**
-   * Get all categories — /product/user-type1/categories
-   */
+  //Get all categories — /product/user-type1/categories
   getCategories: async (): Promise<{ categories: string[]; categoryCounts: Record<string, number> }> => {
     const json = await apiService.get<any>(API_ENDPOINTS.PRODUCT_UT1_CATEGORIES);
     return {
@@ -225,17 +210,13 @@ export const productsService = {
     };
   },
 
-  /**
-   * Get featured products — /product/user-type1/featured
-   */
+  //Get featured products — /product/user-type1/featured
   getFeaturedProducts: async (): Promise<Product[]> => {
     const json = await apiService.get<any>(API_ENDPOINTS.PRODUCT_UT1_FEATURED);
     return mapProductList(json);
   },
 
-  /**
-   * Products by price range — /product/user-type2/price-range
-   */
+  //Products by price range — /product/user-type2/price-range
   getProductsByPriceRange: async (minPrice: number, maxPrice: number): Promise<Product[]> => {
     const json = await apiService.get<any>(
       `${API_ENDPOINTS.PRODUCT_UT2_PRICE_RANGE}?minPrice=${minPrice}&maxPrice=${maxPrice}`
@@ -243,27 +224,20 @@ export const productsService = {
     return mapProductList(json);
   },
 
-  /**
-   * Products sorted by price — /product/user-type2/sorted
-   */
+  //Products sorted by price — /product/user-type2/sorted
   getProductsSortedByPrice: async (order: 'asc' | 'desc' = 'asc'): Promise<Product[]> => {
     const json = await apiService.get<any>(`${API_ENDPOINTS.PRODUCT_UT2_SORTED}?order=${order}`);
     return mapProductList(json);
   },
 
-  /**
-   * Compare products — /product/user-type2/compare
-   * Sends numeric IDs (Long on backend)
-   */
+  //Compare products — /product/user-type2/compare
   compareProducts: async (ids: string[]): Promise<Product[]> => {
     const numericIds = ids.map(Number);
     const json = await apiService.post<any>(API_ENDPOINTS.PRODUCT_UT2_COMPARE, numericIds);
     return mapProductList(json);
   },
 
-  /**
-   * Update stock — /product/admin-type1/update-stock/{id}?quantity=N
-   */
+  //Update stock — /product/admin-type1/update-stock/{id}?quantity=N
   updateStock: async (id: string, quantity: number): Promise<Product> => {
     const json = await apiService.put<any>(
       `${API_ENDPOINTS.PRODUCT_AT1_UPDATE_STOCK(id)}?quantity=${quantity}`
@@ -271,17 +245,13 @@ export const productsService = {
     return mapBackendProduct(json.product || json);
   },
 
-  /**
-   * Toggle active/inactive — /product/admin-type2/toggle-active/{id}
-   */
+  //Toggle active/inactive — /product/admin-type2/toggle-active/{id}
   toggleActive: async (id: string): Promise<Product> => {
     const json = await apiService.patch<any>(API_ENDPOINTS.PRODUCT_AT2_TOGGLE_ACTIVE(id));
     return mapBackendProduct(json.product || json);
   },
 
-  /**
-   * Low stock products — /product/admin-type1/low-stock
-   */
+  //Low stock products — /product/admin-type1/low-stock
   getLowStockProducts: async (threshold = 10): Promise<Product[]> => {
     const json = await apiService.get<any>(
       `${API_ENDPOINTS.PRODUCT_AT1_LOW_STOCK}?threshold=${threshold}`

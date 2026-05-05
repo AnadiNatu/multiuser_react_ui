@@ -41,7 +41,7 @@ export default function Dashboard() {
     dispatch(fetchOrders());
   }, [dispatch]);
 
-  // ── Derived stats ────────────────────────────────────────────────────────
+  // Derived stats 
   const totalProducts   = statistics?.totalProducts   ?? products.length;
   const activeProducts  = statistics?.activeProducts  ?? products.filter((p) => p.isActive).length;
   const lowStock        = products.filter((p) => p.stock <= 10 && p.isActive).length;
@@ -58,7 +58,7 @@ export default function Dashboard() {
 
   const recentProducts = [...products].slice(0, 4);
 
-  // ── Stat cards ───────────────────────────────────────────────────────────
+  //Stat cards 
   const adminStats = [
     {
       label: 'Total Products',
