@@ -10,25 +10,25 @@ export interface BreadcrumbItem {
 }
 
 interface BreadcrumbProps {
-  items: BreadcrumbItem[];
+  items:      BreadcrumbItem[];
   className?: string;
-  showHome?: boolean;
+  showHome?:  boolean;
   separator?: ReactNode;
 }
 
-export function Breadcrumb({ 
-  items, 
+export function Breadcrumb({
+  items,
   className,
-  showHome = true,
-  separator = <ChevronRight className="w-4 h-4" />
+  showHome  = true,
+  separator = <ChevronRight className="w-3.5 h-3.5" />,
 }: BreadcrumbProps) {
   const allItems = showHome
-    ? [{ label: 'Home', href: '/dashboard', icon: <Home className="w-4 h-4" /> }, ...items]
+    ? [{ label: 'Home', href: '/dashboard', icon: <Home className="w-3.5 h-3.5" /> }, ...items]
     : items;
 
   return (
-    <nav aria-label="Breadcrumb" className={cn('mb-6', className)}>
-      <ol className="flex items-center space-x-2 text-sm">
+    <nav aria-label="Breadcrumb" className={cn('mb-5', className)}>
+      <ol className="flex items-center flex-wrap gap-y-1 text-xs">
         {allItems.map((item, index) => {
           const isLast = index === allItems.length - 1;
 
@@ -38,7 +38,7 @@ export function Breadcrumb({
                 {item.href && !isLast ? (
                   <Link
                     to={item.href}
-                    className="flex items-center gap-2 text-slate-500 hover:text-brand-green transition-colors font-medium"
+                    className="flex items-center gap-1.5 text-slate-400 hover:text-brand-green transition-colors font-semibold"
                   >
                     {item.icon}
                     {item.label}
@@ -46,10 +46,8 @@ export function Breadcrumb({
                 ) : (
                   <span
                     className={cn(
-                      'flex items-center gap-2',
-                      isLast
-                        ? 'text-slate-900 font-semibold'
-                        : 'text-slate-500'
+                      'flex items-center gap-1.5 font-semibold',
+                      isLast ? 'text-slate-800' : 'text-slate-400'
                     )}
                   >
                     {item.icon}
@@ -58,7 +56,7 @@ export function Breadcrumb({
                 )}
               </li>
               {!isLast && (
-                <li className="text-slate-300" aria-hidden="true">
+                <li className="text-slate-300 mx-1.5" aria-hidden="true">
                   {separator}
                 </li>
               )}

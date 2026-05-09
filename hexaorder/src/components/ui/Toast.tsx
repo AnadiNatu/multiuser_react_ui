@@ -6,54 +6,45 @@ import { cn } from '../../utils/helpers';
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 interface Toast {
-  id: string;
-  type: ToastType;
-  message: string;
+  id:        string;
+  type:      ToastType;
+  message:   string;
   duration?: number;
 }
 
 interface ToastContextType {
   showToast: (message: string, type?: ToastType, duration?: number) => void;
-  success: (message: string, duration?: number) => void;
-  error: (message: string, duration?: number) => void;
-  warning: (message: string, duration?: number) => void;
-  info: (message: string, duration?: number) => void;
+  success:   (message: string, duration?: number) => void;
+  error:     (message: string, duration?: number) => void;
+  warning:   (message: string, duration?: number) => void;
+  info:      (message: string, duration?: number) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function useToast() {
   const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within ToastProvider');
-  }
+  if (!context) throw new Error('useToast must be used within ToastProvider');
   return context;
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
+  const removeToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
-  const showToast = (message: string, type: ToastType = 'info', duration = 5000) => {
+  const showToast = (message: string, type: ToastType = 'info', duration = 4500) => {
     const id = crypto.randomUUID();
-    const newToast: Toast = { id, type, message, duration };
-
-    setToasts((prev) => [...prev, newToast]);
-
-    if (duration > 0) {
-      setTimeout(() => removeToast(id), duration);
-    }
+    setToasts((prev) => [...prev, { id, type, message, duration }]);
+    if (duration > 0) setTimeout(() => removeToast(id), duration);
   };
 
   const value: ToastContextType = {
     showToast,
-    success: (message, duration) => showToast(message, 'success', duration),
-    error: (message, duration) => showToast(message, 'error', duration),
-    warning: (message, duration) => showToast(message, 'warning', duration),
-    info: (message, duration) => showToast(message, 'info', duration),
+    success: (m, d) => showToast(m, 'success', d),
+    error:   (m, d) => showToast(m, 'error', d),
+    warning: (m, d) => showToast(m, 'warning', d),
+    info:    (m, d) => showToast(m, 'info', d),
   };
 
   return (
@@ -64,61 +55,36 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function ToastContainer({ 
-  toasts, 
-  onRemove 
-}: { 
-  toasts: Toast[]; 
-  onRemove: (id: string) => void;
-}) {
+function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) {
   if (toasts.length === 0) return null;
-
   return (
-    <div className="fixed top-4 right-4 z-[9999] space-y-3 pointer-events-none">
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
-      ))}
+    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+      {toasts.map((toast) => <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />)}
     </div>
   );
 }
 
-function ToastItem({ 
-  toast, 
-  onRemove 
-}: { 
-  toast: Toast; 
-  onRemove: (id: string) => void;
-}) {
-  const icons = {
-    success: <CheckCircle className="w-5 h-5" />,
-    error: <AlertCircle className="w-5 h-5" />,
-    warning: <AlertTriangle className="w-5 h-5" />,
-    info: <Info className="w-5 h-5" />,
-  };
-
-  const variants = {
-    success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
-    warning: 'bg-amber-50 border-amber-200 text-amber-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
-  };
+function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
+  const config = {
+    success: { bg: 'bg-white border-l-4 border-l-emerald-500', icon: <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />, text: 'text-slate-800' },
+    error:   { bg: 'bg-white border-l-4 border-l-red-500',     icon: <AlertCircle  className="w-4 h-4 text-red-500 flex-shrink-0"   />, text: 'text-slate-800' },
+    warning: { bg: 'bg-white border-l-4 border-l-amber-500',   icon: <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />, text: 'text-slate-800' },
+    info:    { bg: 'bg-white border-l-4 border-l-blue-500',    icon: <Info          className="w-4 h-4 text-blue-500 flex-shrink-0"  />, text: 'text-slate-800' },
+  }[toast.type];
 
   return (
     <div
       className={cn(
-        'flex items-start gap-3 p-4 rounded-lg border shadow-lg backdrop-blur-sm pointer-events-auto',
-        'animate-in slide-in-from-right duration-300',
-        variants[toast.type]
+        'flex items-start gap-3 px-4 py-3 rounded-xl shadow-xl pointer-events-auto min-w-[280px] max-w-sm border border-slate-200',
+        config.bg
       )}
+      style={{ animation: 'slideInRight 0.25s ease' }}
       role="alert"
     >
-      <div className="flex-shrink-0 mt-0.5">{icons[toast.type]}</div>
-      <p className="text-sm font-medium flex-1">{toast.message}</p>
-      <button
-        onClick={() => onRemove(toast.id)}
-        className="flex-shrink-0 hover:opacity-70 transition-opacity"
-        aria-label="Close"
-      >
+      <style>{`@keyframes slideInRight { from { opacity:0; transform:translateX(20px) } to { opacity:1; transform:translateX(0) } }`}</style>
+      {config.icon}
+      <p className={cn('text-sm font-medium flex-1 leading-snug', config.text)}>{toast.message}</p>
+      <button onClick={() => onRemove(toast.id)} className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors ml-1">
         <X className="w-4 h-4" />
       </button>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { fetchOrders, updateOrderStatus, clearOrderMessage } from '../features/orders/ordersSlice';
 import { Widget } from '../components/ui/Widget';
@@ -11,35 +11,33 @@ import { SkeletonTable } from '../components/ui/LoadingSpinner';
 import { Alert } from '../components/ui/Alert';
 import { useToast } from '../components/ui/Toast';
 import { formatCurrency, formatDate } from '../utils/helpers';
-import { ShoppingBag, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { ShoppingBag, Clock, CheckCircle, XCircle, ShoppingCart } from 'lucide-react';
 import { Order } from '../types';
 
 const STATUS_OPTIONS = [
-  { value: '', label: '— Change Status —' },
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: '',           label: '— Change Status —' },
+  { value: 'PENDING',    label: 'Pending' },
+  { value: 'COMPLETED',  label: 'Completed' },
+  { value: 'CANCELLED',  label: 'Cancelled' },
 ];
 
 export default function OrderList() {
-  const dispatch = useAppDispatch();
+  const dispatch               = useAppDispatch();
   const { success, error: toastError } = useToast();
 
-  const user        = useAppSelector((s) => s.auth.user);
-  const orders      = useAppSelector((s) => s.orders.items);
-  const loading     = useAppSelector((s) => s.orders.fetchStatus === 'loading');
-  const message     = useAppSelector((s) => s.orders.message);
-  const storeError  = useAppSelector((s) => s.orders.error);
+  const user       = useAppSelector((s) => s.auth.user);
+  const orders     = useAppSelector((s) => s.orders.items);
+  const loading    = useAppSelector((s) => s.orders.fetchStatus === 'loading');
+  const message    = useAppSelector((s) => s.orders.message);
+  const storeError = useAppSelector((s) => s.orders.error);
 
   const rawRole = user?.rawRole || '';
   const isAdmin = ['ADMIN', 'ADMIN_TYPE1', 'ADMIN_TYPE2'].includes(rawRole);
 
-  useEffect(() => {
-    dispatch(fetchOrders());
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchOrders()); }, [dispatch]);
 
   useEffect(() => {
-    if (message) { success(message); dispatch(clearOrderMessage()); }
+    if (message)    { success(toastError as any);    dispatch(clearOrderMessage()); }
     if (storeError) { toastError(storeError); dispatch(clearOrderMessage()); }
   }, [message, storeError]);
 
@@ -51,9 +49,7 @@ export default function OrderList() {
   const handleStatusChange = async (orderId: string, status: string) => {
     if (!status) return;
     try {
-      await dispatch(
-        updateOrderStatus({ id: orderId, status: status as Order['status'] })
-      ).unwrap();
+      await dispatch(updateOrderStatus({ id: orderId, status: status as Order['status'] })).unwrap();
     } catch (err: any) {
       toastError(err.message || 'Failed to update status');
     }
@@ -61,26 +57,10 @@ export default function OrderList() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'COMPLETED':
-        return (
-          <Badge variant="success" leftIcon={<CheckCircle className="w-3 h-3" />}>
-            Completed
-          </Badge>
-        );
-      case 'PENDING':
-        return (
-          <Badge variant="warning" leftIcon={<Clock className="w-3 h-3" />}>
-            Pending
-          </Badge>
-        );
-      case 'CANCELLED':
-        return (
-          <Badge variant="error" leftIcon={<XCircle className="w-3 h-3" />}>
-            Cancelled
-          </Badge>
-        );
-      default:
-        return <Badge>{status}</Badge>;
+      case 'COMPLETED': return <Badge variant="success" leftIcon={<CheckCircle className="w-3 h-3" />}>Completed</Badge>;
+      case 'PENDING':   return <Badge variant="warning" leftIcon={<Clock className="w-3 h-3" />}>Pending</Badge>;
+      case 'CANCELLED': return <Badge variant="error"   leftIcon={<XCircle className="w-3 h-3" />}>Cancelled</Badge>;
+      default:          return <Badge>{status}</Badge>;
     }
   };
 
@@ -88,21 +68,21 @@ export default function OrderList() {
     {
       key: 'id',
       header: 'Order ID',
-      render: (order: Order) => (
-        <span className="font-mono text-sm font-semibold text-slate-900">{order.id}</span>
-      ),
       sortable: true,
+      render: (order: Order) => (
+        <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-md">
+          #{order.id}
+        </span>
+      ),
     },
-    ...(isAdmin
-      ? [{ key: 'userName', header: 'Customer', sortable: true }]
-      : []),
+    ...(isAdmin ? [{ key: 'userName', header: 'Customer', sortable: true }] : []),
     {
       key: 'createdAt',
       header: 'Date',
-      render: (order: Order) => (
-        <span className="text-sm text-slate-600">{formatDate(order.createdAt)}</span>
-      ),
       sortable: true,
+      render: (order: Order) => (
+        <span className="text-xs text-slate-500 font-medium">{formatDate(order.createdAt)}</span>
+      ),
     },
     {
       key: 'items',
@@ -110,8 +90,8 @@ export default function OrderList() {
       render: (order: Order) => (
         <div className="flex flex-col gap-0.5">
           {order.items.map((item, idx) => (
-            <span key={idx} className="text-sm text-slate-600 truncate max-w-[200px]">
-              {item.quantity}× {item.productName}
+            <span key={idx} className="text-xs text-slate-600 truncate max-w-[180px]">
+              <span className="font-bold text-slate-800">{item.quantity}×</span> {item.productName}
             </span>
           ))}
         </div>
@@ -120,10 +100,10 @@ export default function OrderList() {
     {
       key: 'totalAmount',
       header: 'Total',
-      render: (order: Order) => (
-        <span className="font-bold text-slate-900">{formatCurrency(order.totalAmount)}</span>
-      ),
       sortable: true,
+      render: (order: Order) => (
+        <span className="text-sm font-extrabold text-slate-900">{formatCurrency(order.totalAmount)}</span>
+      ),
     },
     {
       key: 'status',
@@ -134,28 +114,25 @@ export default function OrderList() {
             value=""
             onChange={(e) => handleStatusChange(order.id, e.target.value)}
             options={STATUS_OPTIONS}
-            containerClassName="w-44"
+            containerClassName="w-40"
             aria-label="Change status"
           />
         ) : (
           getStatusBadge(order.status)
         ),
     },
-    // Current status column for admin (separate)
     ...(isAdmin
-      ? [
-          {
-            key: 'currentStatus',
-            header: 'Current',
-            render: (order: Order) => getStatusBadge(order.status),
-          },
-        ]
+      ? [{
+          key: 'currentStatus',
+          header: 'Current',
+          render: (order: Order) => getStatusBadge(order.status),
+        }]
       : []),
   ];
 
   if (loading && orders.length === 0) {
     return (
-      <div>
+      <div className="page-enter">
         <Breadcrumb items={[{ label: 'Orders' }]} />
         <SkeletonTable rows={8} />
       </div>
@@ -163,21 +140,26 @@ export default function OrderList() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       <Breadcrumb items={[{ label: 'Orders' }]} />
 
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          {isAdmin ? 'All Orders' : 'My Orders'}
-        </h1>
-        <p className="text-slate-500">
-          {isAdmin
-            ? 'Track and manage customer orders.'
-            : 'View your order history and status.'}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            {isAdmin ? 'All Orders' : 'My Orders'}
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {isAdmin
+              ? 'Track and manage all customer orders.'
+              : 'View your order history and current status.'}
+          </p>
+        </div>
+        <div className="flex-shrink-0 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm text-center">
+          <p className="text-2xl font-extrabold text-slate-900">{filteredOrders.length}</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total</p>
+        </div>
       </div>
 
-      {/* Backend not ready notice */}
       {!loading && orders.length === 0 && (
         <Alert variant="info">
           <strong>Orders module:</strong> The orders backend is not yet implemented. Build the
@@ -186,7 +168,15 @@ export default function OrderList() {
         </Alert>
       )}
 
-      <Widget title={`${filteredOrders.length} Total Orders`} noPadding>
+      <Widget
+        title={
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="w-4 h-4 text-slate-400" />
+            <span>{filteredOrders.length} Order{filteredOrders.length !== 1 ? 's' : ''}</span>
+          </div>
+        }
+        noPadding
+      >
         {filteredOrders.length === 0 ? (
           <EmptyState
             icon={<ShoppingBag className="w-12 h-12" />}

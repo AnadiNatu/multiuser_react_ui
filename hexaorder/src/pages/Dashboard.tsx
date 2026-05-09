@@ -170,21 +170,29 @@ export default function Dashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {loadingP && loadingO
-          ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : stats.map((stat) => (
-              <button
-                key={stat.label}
-                onClick={stat.action}
-                className="bg-white rounded-xl border border-slate-200 p-6 text-left hover:shadow-md hover:border-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-brand-green/20"
-              >
-                <div className={`inline-flex p-3 rounded-xl ${stat.bg} mb-4`}>
-                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                </div>
-                <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-                <p className="text-sm text-slate-500 mt-1">{stat.label}</p>
-              </button>
-            ))}
+       {loadingP && loadingO
+        ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+        : stats.map((stat, idx) => {
+        const accentClasses = [
+        'stat-accent-green',
+        'stat-accent-emerald',
+        'stat-accent-blue',
+        'stat-accent-violet',
+      ];
+      return (
+        <button
+          key={stat.label}
+          onClick={stat.action}
+          className={`relative overflow-hidden bg-white rounded-xl border border-slate-200 p-6 text-left shadow-sm transition-all duration-250 hover:shadow-md hover:border-slate-300 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-brand-green/20 ${accentClasses[idx % accentClasses.length]}`}
+        >
+          <div className={`inline-flex p-3 rounded-xl ${stat.bg} mb-4`}>
+            <stat.icon className={`w-6 h-6 ${stat.color}`} />
+          </div>
+          <p className="text-2xl font-extrabold text-slate-900 tracking-tight">{stat.value}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{stat.label}</p>
+        </button>
+      );
+    })}
       </div>
 
       {/* Low stock alert — admin only */}

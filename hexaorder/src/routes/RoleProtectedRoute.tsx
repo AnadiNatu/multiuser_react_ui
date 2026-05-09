@@ -6,10 +6,7 @@ interface RoleProtectedRouteProps {
   redirectTo?: string;
 }
 
-/**
- * Restricts a route to users whose rawRole matches allowedRoles.
- * Also checks that the user is authenticated.
- */
+
 export function RoleProtectedRoute({
   allowedRoles,
   redirectTo = '/dashboard',

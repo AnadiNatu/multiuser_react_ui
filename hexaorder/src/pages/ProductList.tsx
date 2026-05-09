@@ -1,13 +1,9 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import {
-  fetchProducts,
-  searchProducts,
-  deleteProduct,
-  toggleProductActive,
-  clearProductMessage,
-  setPage,
+  fetchProducts, searchProducts, deleteProduct,
+  toggleProductActive, clearProductMessage, setPage,
 } from '../features/products/productsSlice';
 import { productsService } from '../features/products/productsService';
 import { Widget } from '../components/ui/Widget';
@@ -23,156 +19,100 @@ import { SkeletonTable } from '../components/ui/LoadingSpinner';
 import { useDebounce } from '../hooks/useDebounce';
 import { useToast } from '../components/ui/Toast';
 import {
-  Plus,
-  Search,
-  Edit2,
-  Trash2,
-  Eye,
-  Package as PackageIcon,
-  ToggleLeft,
-  ToggleRight,
-  ChevronLeft,
-  ChevronRight,
-  SlidersHorizontal,
+  Plus, Search, Edit2, Trash2, Eye, Package as PackageIcon,
+  ToggleLeft, ToggleRight, ChevronLeft, ChevronRight, SlidersHorizontal,
 } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 import { Product } from '../types';
 
 const SORT_OPTIONS = [
-  { value: '', label: 'Default' },
-  { value: 'asc', label: 'Price: Low → High' },
+  { value: '',     label: 'Default sort' },
+  { value: 'asc',  label: 'Price: Low → High' },
   { value: 'desc', label: 'Price: High → Low' },
 ];
 
 export default function ProductList() {
-  const navigate  = useNavigate();
-  const dispatch  = useAppDispatch();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { success, error: toastError } = useToast();
 
-  const user          = useAppSelector((s) => s.auth.user);
-  const products      = useAppSelector((s) => s.products.items);
-  const loading       = useAppSelector((s) => s.products.fetchStatus === 'loading');
-  const deleteStatus  = useAppSelector((s) => s.products.deleteStatus);
-  const message       = useAppSelector((s) => s.products.message);
-  const storeError    = useAppSelector((s) => s.products.error);
-  const pagination    = useAppSelector((s) => s.products.pagination);
+  const user         = useAppSelector((s) => s.auth.user);
+  const products     = useAppSelector((s) => s.products.items);
+  const loading      = useAppSelector((s) => s.products.fetchStatus === 'loading');
+  const deleteStatus = useAppSelector((s) => s.products.deleteStatus);
+  const message      = useAppSelector((s) => s.products.message);
+  const storeError   = useAppSelector((s) => s.products.error);
+  const pagination   = useAppSelector((s) => s.products.pagination);
 
-  const rawRole = user?.rawRole || '';
+  const rawRole      = user?.rawRole || '';
   const isAdmin      = ['ADMIN', 'ADMIN_TYPE1', 'ADMIN_TYPE2'].includes(rawRole);
   const isAdminType2 = rawRole === 'ADMIN_TYPE2';
   const isUserType2  = rawRole === 'USER_TYPE2';
 
-  // ── Filter state ──────────────────────────────────────────────────────
-  const [searchTerm, setSearchTerm]       = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All');
-  const [sortOrder, setSortOrder]          = useState('');
-  const [minPrice, setMinPrice]            = useState('');
-  const [maxPrice, setMaxPrice]            = useState('');
-  const [deleteConfirm, setDeleteConfirm]  = useState<string | null>(null);
+  const [searchTerm,      setSearchTerm]      = useState('');
+  const [categoryFilter,  setCategoryFilter]  = useState('All');
+  const [sortOrder,       setSortOrder]       = useState('');
+  const [minPrice,        setMinPrice]        = useState('');
+  const [maxPrice,        setMaxPrice]        = useState('');
+  const [deleteConfirm,   setDeleteConfirm]   = useState<string | null>(null);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
   const debouncedMin    = useDebounce(minPrice, 700);
   const debouncedMax    = useDebounce(maxPrice, 700);
 
-  // ── Initial load ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (products.length === 0) {
-      dispatch(fetchProducts());
-    }
+    if (products.length === 0) dispatch(fetchProducts());
   }, [dispatch]);
 
-  // Toast on message/error
   useEffect(() => {
-    if (message) {
-      success(message);
-      dispatch(clearProductMessage());
-    }
-    if (storeError) {
-      toastError(storeError);
-      dispatch(clearProductMessage());
-    }
+    if (message)    { success(message);      dispatch(clearProductMessage()); }
+    if (storeError) { toastError(storeError); dispatch(clearProductMessage()); }
   }, [message, storeError]);
 
-  // ── Search (debounced, API call) ──────────────────────────────────────
   useEffect(() => {
-    if (debouncedSearch.trim()) {
-      dispatch(searchProducts(debouncedSearch));
-    } else if (debouncedSearch === '') {
-      dispatch(fetchProducts());
-    }
+    if (debouncedSearch.trim()) dispatch(searchProducts(debouncedSearch));
+    else if (debouncedSearch === '') dispatch(fetchProducts());
   }, [debouncedSearch, dispatch]);
 
-  // ── Price range filter (USER_TYPE2) ───────────────────────────────────
   const [priceFilteredProducts, setPriceFilteredProducts] = useState<Product[] | null>(null);
-
   useEffect(() => {
     if (!isUserType2) return;
-    const min = parseFloat(debouncedMin);
-    const max = parseFloat(debouncedMax);
+    const min = parseFloat(debouncedMin), max = parseFloat(debouncedMax);
     if (!isNaN(min) && !isNaN(max) && min >= 0 && max > min) {
-      productsService
-        .getProductsByPriceRange(min, max)
-        .then(setPriceFilteredProducts)
-        .catch(() => setPriceFilteredProducts(null));
-    } else {
-      setPriceFilteredProducts(null);
-    }
+      productsService.getProductsByPriceRange(min, max).then(setPriceFilteredProducts).catch(() => setPriceFilteredProducts(null));
+    } else { setPriceFilteredProducts(null); }
   }, [debouncedMin, debouncedMax, isUserType2]);
 
-  // ── Sort by price (USER_TYPE2) ─────────────────────────────────────────
   const [sortedProducts, setSortedProducts] = useState<Product[] | null>(null);
-
   useEffect(() => {
-    if (!isUserType2 || !sortOrder) {
-      setSortedProducts(null);
-      return;
-    }
-    productsService
-      .getProductsSortedByPrice(sortOrder as 'asc' | 'desc')
-      .then(setSortedProducts)
-      .catch(() => setSortedProducts(null));
+    if (!isUserType2 || !sortOrder) { setSortedProducts(null); return; }
+    productsService.getProductsSortedByPrice(sortOrder as 'asc' | 'desc').then(setSortedProducts).catch(() => setSortedProducts(null));
   }, [sortOrder, isUserType2]);
 
-  // ── Category filter ───────────────────────────────────────────────────
   const [categoryProducts, setCategoryProducts] = useState<Product[] | null>(null);
-
   useEffect(() => {
-    if (categoryFilter === 'All') {
-      setCategoryProducts(null);
-      return;
-    }
-    productsService
-      .getProductsByCategory(categoryFilter, rawRole)
-      .then(setCategoryProducts)
-      .catch(() => setCategoryProducts(null));
+    if (categoryFilter === 'All') { setCategoryProducts(null); return; }
+    productsService.getProductsByCategory(categoryFilter, rawRole).then(setCategoryProducts).catch(() => setCategoryProducts(null));
   }, [categoryFilter, rawRole]);
 
-  // ── Derive display list ───────────────────────────────────────────────
   const displayProducts = useMemo(() => {
-    // Priority: sort > price range > category > plain search/all
-    if (isUserType2 && sortedProducts) return sortedProducts;
+    if (isUserType2 && sortedProducts)        return sortedProducts;
     if (isUserType2 && priceFilteredProducts) return priceFilteredProducts;
-    if (categoryProducts) return categoryProducts;
+    if (categoryProducts)                     return categoryProducts;
     return products;
   }, [products, categoryProducts, priceFilteredProducts, sortedProducts, isUserType2]);
 
-  // ── Pagination (client-side over the current display list) ────────────
-  const pageSize = pagination.size;
+  const pageSize    = pagination.size;
   const currentPage = pagination.page;
   const totalPages  = Math.ceil(displayProducts.length / pageSize);
-  const paginated   = displayProducts.slice(
-    currentPage * pageSize,
-    (currentPage + 1) * pageSize
-  );
+  const paginated   = displayProducts.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
-  // Unique categories for dropdown
   const categories = useMemo(
     () => ['All', ...Array.from(new Set(products.map((p) => p.category).filter(Boolean)))],
     [products]
   );
 
-  // ── Actions ───────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     await dispatch(deleteProduct(id)).unwrap().catch(() => {});
     setDeleteConfirm(null);
@@ -182,10 +122,9 @@ export default function ProductList() {
     await dispatch(toggleProductActive(id)).unwrap().catch(() => {});
   };
 
-  // ── Render ────────────────────────────────────────────────────────────
   if (loading && products.length === 0) {
     return (
-      <div>
+      <div className="page-enter">
         <Breadcrumb items={[{ label: 'Products' }]} />
         <SkeletonTable rows={6} />
       </div>
@@ -193,55 +132,40 @@ export default function ProductList() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       <Breadcrumb items={[{ label: 'Products' }]} />
 
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Products</h1>
-          <p className="text-slate-500">
-            {isAdmin
-              ? 'Manage your inventory and product listings.'
-              : 'Browse our collection of products.'}
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Products</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {isAdmin ? 'Manage your inventory and product listings.' : 'Browse our product catalogue.'}
           </p>
         </div>
         {isAdmin && (
-          <Button
-            leftIcon={<Plus className="w-4 h-4" />}
-            onClick={() => navigate('/products/new')}
-          >
+          <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => navigate('/products/new')}>
             Add Product
           </Button>
         )}
       </div>
 
       <Widget noPadding>
-        {/* ── Filter bar ─────────────────────────────────────────────── */}
-        <div className="p-4 border-b border-slate-100 space-y-3">
-          <div className="flex flex-col md:flex-row gap-3">
+        {/* Filter bar */}
+        <div className="p-4 border-b border-slate-100 space-y-3 bg-slate-50/50">
+          <div className="flex flex-col md:flex-row gap-2.5">
             <Input
               placeholder="Search products..."
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                dispatch(setPage(0));
-              }}
+              onChange={(e) => { setSearchTerm(e.target.value); dispatch(setPage(0)); }}
               leftIcon={<Search className="w-4 h-4" />}
               containerClassName="flex-1"
             />
-
             <Select
               value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value);
-                dispatch(setPage(0));
-              }}
+              onChange={(e) => { setCategoryFilter(e.target.value); dispatch(setPage(0)); }}
               options={categories.map((c) => ({ value: c ?? 'Other', label: c ?? 'Other' }))}
-              containerClassName="w-full md:w-48"
+              containerClassName="w-full md:w-44"
             />
-
-            {/* Sort — USER_TYPE2 only */}
             {isUserType2 && (
               <Select
                 value={sortOrder}
@@ -250,8 +174,6 @@ export default function ProductList() {
                 containerClassName="w-full md:w-52"
               />
             )}
-
-            {/* Price filter toggle — USER_TYPE2 only */}
             {isUserType2 && (
               <Button
                 variant={showPriceFilter ? 'secondary' : 'outline'}
@@ -264,62 +186,33 @@ export default function ProductList() {
             )}
           </div>
 
-          {/* Price range inputs */}
           {isUserType2 && showPriceFilter && (
-            <div className="flex gap-3 items-center">
-              <Input
-                placeholder="Min ₹"
-                type="number"
-                min="0"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                containerClassName="w-36"
-              />
-              <span className="text-slate-400">—</span>
-              <Input
-                placeholder="Max ₹"
-                type="number"
-                min="0"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                containerClassName="w-36"
-              />
+            <div className="flex gap-2.5 items-center">
+              <Input placeholder="Min ₹" type="number" min="0" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} containerClassName="w-32" />
+              <span className="text-slate-400 font-bold">—</span>
+              <Input placeholder="Max ₹" type="number" min="0" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} containerClassName="w-32" />
               {(minPrice || maxPrice) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { setMinPrice(''); setMaxPrice(''); }}
-                >
-                  Clear
-                </Button>
+                <Button variant="ghost" size="sm" onClick={() => { setMinPrice(''); setMaxPrice(''); }}>Clear</Button>
               )}
             </div>
           )}
         </div>
 
-        {/* ── Product grid ───────────────────────────────────────────── */}
+        {/* Product grid */}
         {paginated.length === 0 ? (
           <EmptyState
             icon={<PackageIcon className="w-12 h-12" />}
             title="No products found"
             description="Try adjusting your search or filters."
-            action={
-              isAdmin
-                ? {
-                    label: 'Add Product',
-                    onClick: () => navigate('/products/new'),
-                    icon: <Plus className="w-4 h-4" />,
-                  }
-                : undefined
-            }
+            action={isAdmin ? { label: 'Add Product', onClick: () => navigate('/products/new'), icon: <Plus className="w-4 h-4" /> } : undefined}
           />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 p-5">
               {paginated.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-white border border-slate-200 rounded-xl overflow-hidden group hover:shadow-lg transition-all"
+                  className="bg-white border border-slate-200 rounded-xl overflow-hidden group hover:shadow-lg hover:border-slate-300 hover:-translate-y-1 transition-all duration-250"
                 >
                   {/* Image */}
                   <div className="relative h-48 overflow-hidden bg-slate-100">
@@ -332,19 +225,13 @@ export default function ProductList() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-300">
-                        <PackageIcon className="w-16 h-16" />
+                        <PackageIcon className="w-14 h-14" />
                       </div>
                     )}
-                    <div className="absolute top-3 right-3 flex flex-col gap-1">
-                      <Badge
-                        variant={
-                          product.stock > 10
-                            ? 'success'
-                            : product.stock > 0
-                            ? 'warning'
-                            : 'error'
-                        }
-                      >
+                    {/* Top-left accent stripe */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-green to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+                      <Badge variant={product.stock > 10 ? 'success' : product.stock > 0 ? 'warning' : 'error'}>
                         {product.stock} in stock
                       </Badge>
                       {isAdminType2 && (
@@ -356,71 +243,39 @@ export default function ProductList() {
                   </div>
 
                   {/* Info */}
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-slate-900 truncate flex-1">
-                        {product.name}
-                      </h3>
-                      <span className="text-lg font-bold text-brand-green ml-2">
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-1.5">
+                      <h3 className="font-bold text-slate-900 truncate flex-1 text-sm">{product.name}</h3>
+                      <span className="text-base font-extrabold text-brand-green ml-2 flex-shrink-0">
                         {formatCurrency(product.price)}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10">
+                    <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed" style={{ minHeight: '2.25rem' }}>
                       {product.description}
                     </p>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                         {product.category}
                       </span>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-2"
-                          onClick={() => navigate(`/products/${product.id}`)}
-                        >
-                          <Eye className="w-4 h-4" />
+                      <div className="flex items-center gap-0.5">
+                        <Button variant="ghost" size="sm" className="p-1.5 hover:bg-slate-100" onClick={() => navigate(`/products/${product.id}`)}>
+                          <Eye className="w-3.5 h-3.5" />
                         </Button>
-
                         {isAdmin && (
                           <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="p-2"
-                              onClick={() => navigate(`/products/${product.id}/edit`)}
-                            >
-                              <Edit2 className="w-4 h-4" />
+                            <Button variant="ghost" size="sm" className="p-1.5 hover:bg-slate-100" onClick={() => navigate(`/products/${product.id}/edit`)}>
+                              <Edit2 className="w-3.5 h-3.5" />
                             </Button>
-
-                            {/* ADMIN_TYPE2 toggle active */}
                             {isAdminType2 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="p-2 text-amber-500 hover:bg-amber-50"
-                                onClick={() => handleToggleActive(product.id)}
-                              >
-                                {product.isActive ? (
-                                  <ToggleRight className="w-4 h-4" />
-                                ) : (
-                                  <ToggleLeft className="w-4 h-4" />
-                                )}
+                              <Button variant="ghost" size="sm" className="p-1.5 text-amber-500 hover:bg-amber-50" onClick={() => handleToggleActive(product.id)}>
+                                {product.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
                               </Button>
                             )}
-
-                            {/* ADMIN delete */}
                             {rawRole === 'ADMIN' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="p-2 text-red-500 hover:bg-red-50"
-                                onClick={() => setDeleteConfirm(product.id)}
-                                isLoading={deleteStatus === 'loading'}
-                              >
-                                <Trash2 className="w-4 h-4" />
+                              <Button variant="ghost" size="sm" className="p-1.5 text-red-500 hover:bg-red-50" onClick={() => setDeleteConfirm(product.id)} isLoading={deleteStatus === 'loading'}>
+                                <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                             )}
                           </>
@@ -434,32 +289,18 @@ export default function ProductList() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
-                <p className="text-sm text-slate-500">
-                  Showing {currentPage * pageSize + 1}–
-                  {Math.min((currentPage + 1) * pageSize, displayProducts.length)} of{' '}
-                  {displayProducts.length} products
+              <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-100 bg-slate-50/50">
+                <p className="text-xs font-semibold text-slate-500">
+                  {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, displayProducts.length)} of {displayProducts.length}
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => dispatch(setPage(currentPage - 1))}
-                    disabled={currentPage === 0}
-                    leftIcon={<ChevronLeft className="w-4 h-4" />}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => dispatch(setPage(currentPage - 1))} disabled={currentPage === 0} leftIcon={<ChevronLeft className="w-4 h-4" />}>
                     Prev
                   </Button>
-                  <span className="text-sm font-medium text-slate-700 px-2">
+                  <span className="text-xs font-bold text-slate-700 px-1.5">
                     {currentPage + 1} / {totalPages}
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => dispatch(setPage(currentPage + 1))}
-                    disabled={currentPage >= totalPages - 1}
-                    rightIcon={<ChevronRight className="w-4 h-4" />}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => dispatch(setPage(currentPage + 1))} disabled={currentPage >= totalPages - 1} rightIcon={<ChevronRight className="w-4 h-4" />}>
                     Next
                   </Button>
                 </div>

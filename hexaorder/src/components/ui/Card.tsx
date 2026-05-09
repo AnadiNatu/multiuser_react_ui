@@ -2,55 +2,37 @@ import React, { ReactNode } from 'react';
 import { cn } from '../../utils/helpers';
 
 interface CardProps {
-  children: ReactNode;
+  children:  ReactNode;
   className?: string;
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  padding?:   'none' | 'sm' | 'md' | 'lg';
   hoverable?: boolean;
   clickable?: boolean;
-  onClick?: () => void;
+  onClick?:   () => void;
 }
 
-interface CardHeaderProps {
-  children: ReactNode;
-  className?: string;
-}
-
-interface CardBodyProps {
-  children: ReactNode;
-  className?: string;
-}
-
-interface CardFooterProps {
-  children: ReactNode;
-  className?: string;
-}
+interface CardHeaderProps { children: ReactNode; className?: string; }
+interface CardBodyProps   { children: ReactNode; className?: string; }
+interface CardFooterProps { children: ReactNode; className?: string; }
 
 const paddingStyles = {
   none: 'p-0',
-  sm: 'p-4',
-  md: 'p-6',
-  lg: 'p-8',
+  sm:   'p-4',
+  md:   'p-6',
+  lg:   'p-8',
 };
 
-export function Card({
-  children,
-  className,
-  padding = 'md',
-  hoverable = false,
-  clickable = false,
-  onClick,
-}: CardProps) {
+export function Card({ children, className, padding = 'md', hoverable = false, clickable = false, onClick }: CardProps) {
   const Component = clickable || onClick ? 'button' : 'div';
 
   return (
     <Component
       onClick={onClick}
       className={cn(
-        'bg-white rounded-xl border border-slate-200 transition-all',
+        'bg-white rounded-xl border border-slate-200 shadow-sm transition-all duration-250',
         paddingStyles[padding],
-        hoverable && 'hover:shadow-lg hover:border-slate-300',
-        clickable && 'cursor-pointer hover:shadow-lg hover:border-brand-green',
-        onClick && 'focus:outline-none focus:ring-2 focus:ring-brand-green/20',
+        hoverable  && 'hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5',
+        clickable  && 'cursor-pointer hover:shadow-md hover:border-brand-green/40 hover:-translate-y-1',
+        onClick    && 'focus:outline-none focus:ring-2 focus:ring-brand-green/20',
         className
       )}
     >
@@ -80,5 +62,5 @@ export function CardFooter({ children, className }: CardFooterProps) {
 }
 
 Card.Header = CardHeader;
-Card.Body = CardBody;
+Card.Body   = CardBody;
 Card.Footer = CardFooter;
