@@ -2,6 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAppSelector } from '../app/hooks';
 import { Navbar } from '../components/layout/Navbar';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { authStorage } from '@/utils/storage';
 
 export function ProtectedRoute() {
   const user = useAppSelector((state) => state.auth.user);
@@ -29,9 +30,13 @@ export function ProtectedRoute() {
     );
   }
 
-  if (!user) {
+ const token = authStorage.getToken();
+
+if (!user || !token) {
+
     return <Navigate to="/login" replace />;
-  }
+
+}
 
   return (
     <div

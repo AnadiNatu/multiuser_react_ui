@@ -1,58 +1,28 @@
-import AdminCard from './AdminCard';
+// src/components/ui/AdminStatistics.tsx
+// FIX: stat title text-slate-400, value uses passed color class, bg dark card.
 
-interface Stat {
-
+interface StatItem {
   title: string;
-
-  value: number | string;
-
-  color?: string;
+  value: string | number;
+  color: string;
 }
 
 interface Props {
-
-  stats: Stat[];
+  stats: StatItem[];
 }
 
-export default function AdminStatistics({
-
-  stats,
-
-}: Props) {
-
+export default function AdminStatistics({ stats }: Props) {
   return (
-
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {stats.map((stat) => (
-
-        <AdminCard key={stat.title}>
-
-          <p className="text-xs uppercase tracking-wider text-slate-400">
-
+        <div key={stat.title}
+             className="bg-slate-900/70 border border-slate-700 rounded-2xl p-4 shadow-lg">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
             {stat.title}
-
           </p>
-
-          <h2
-            className={`
-              mt-3
-              text-3xl
-              font-bold
-              ${stat.color ?? 'text-white'}
-            `}
-          >
-
-            {stat.value}
-
-          </h2>
-
-        </AdminCard>
-
+          <p className={`text-2xl font-extrabold ${stat.color}`}>{stat.value}</p>
+        </div>
       ))}
-
     </div>
-
   );
-
 }

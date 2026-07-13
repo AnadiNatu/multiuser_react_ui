@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAppSelector } from '../app/hooks';
+import { authStorage } from '@/utils/storage';
 
 interface RoleProtectedRouteProps {
   allowedRoles: string[];
@@ -13,9 +14,11 @@ export function RoleProtectedRoute({
   const user = useAppSelector((state) => state.auth.user);
 
   // Not logged in
-  if (!user) {
+  const token = authStorage.getToken();
+
+if (!user || !token) {
     return <Navigate to="/login" replace />;
-  }
+}
 
   // Logged in but role not allowed
   if (!allowedRoles.includes(user.rawRole)) {

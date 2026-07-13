@@ -1,201 +1,89 @@
-import { Mail, UserPlus } from 'lucide-react';
+// src/components/ui/ProvisionForm.tsx
+// FIX: Label text-slate-300, input text readable on dark bg,
+// error/success messages use correct text colors.
 
-import { Alert } from '../ui/Alert';
-import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
+import { UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 
-export interface RoleOption {
-  value: string;
-  label: string;
+interface RoleOption { value: string; label: string; }
+
+interface ProvisionUserRequest {
+  fname: string; lname: string; email: string;
+  password: string; phoneNumber?: string; role: string;
 }
 
 interface Props {
-
-  form: any;
-
-  setForm: React.Dispatch<React.SetStateAction<any>>;
-
-  creating: boolean;
-
-  createMsg:
-    | {
-        type: 'success' | 'error';
-        text: string;
-      }
-    | null;
-
+  form:         ProvisionUserRequest;
+  setForm:      (f: ProvisionUserRequest) => void;
+  creating:     boolean;
+  createMsg:    { type: 'success' | 'error'; text: string } | null;
   clearMessage: () => void;
-
-  roleOptions: RoleOption[];
-
+  roleOptions:  RoleOption[];
+  onSubmit:     (e: React.FormEvent) => void;
   submitLabel?: string;
-
-  onSubmit: (e: React.FormEvent) => void;
 }
 
 export default function ProvisionForm({
-
-  form,
-
-  setForm,
-
-  creating,
-
-  createMsg,
-
-  clearMessage,
-
-  roleOptions,
-
-  submitLabel = 'Create & Invite',
-
-  onSubmit,
-
+  form, setForm, creating, createMsg, clearMessage,
+  roleOptions, onSubmit, submitLabel = 'Create',
 }: Props) {
+  const update = (key: keyof ProvisionUserRequest) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm({ ...form, [key]: e.target.value });
 
   return (
+    <form onSubmit={onSubmit} className="space-y-5">
 
-    <form
-      onSubmit={onSubmit}
-      className="space-y-6"
-    >
-
+      {/* Alert */}
       {createMsg && (
-
-        <Alert
-          variant={createMsg.type}
-          dismissible
-          onDismiss={clearMessage}
-        >
-
-          {createMsg.text}
-
-        </Alert>
-
+        <div className={`flex items-start gap-2 p-3 rounded-lg text-sm ${
+          createMsg.type === 'success'
+            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+            : 'bg-red-500/10 border border-red-500/30 text-red-300'
+        }`}>
+          {createMsg.type === 'success'
+            ? <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            : <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+          <span className="flex-1">{createMsg.text}</span>
+          <button type="button" onClick={clearMessage} className="ml-2 opacity-60 hover:opacity-100 text-xs">✕</button>
+        </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        <Input
-          label="First Name"
-          value={form.fname}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              fname: e.target.value,
-            })
-          }
-          required
-        />
-
-        <Input
-          label="Last Name"
-          value={form.lname}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              lname: e.target.value,
-            })
-          }
-          required
-        />
-
-        <Input
-          label="Email Address"
-          type="email"
-          value={form.email}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              email: e.target.value,
-            })
-          }
-          leftIcon={<Mail className="w-4 h-4" />}
-          required
-        />
-
-        <Input
-          label="Temporary Password"
-          type="password"
-          value={form.password}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              password: e.target.value,
-            })
-          }
-          required
-        />
-
-        <Input
-          label="Phone Number"
-          value={form.phoneNumber}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              phoneNumber: e.target.value,
-            })
-          }
-        />
-
-        <div>
-
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-
-            Role
-
-          </label>
-
-          <select
-
-            value={form.role}
-
-            onChange={(e) =>
-              setForm({
-                ...form,
-                role: e.target.value,
-              })
-            }
-
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"
-
-          >
-
-            {roleOptions.map((role) => (
-
-              <option
-                key={role.value}
-                value={role.value}
-              >
-
-                {role.label}
-
-              </option>
-
-            ))}
-
-          </select>
-
-        </div>
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Input label="First Name" value={form.fname} onChange={update('fname')}
+               placeholder="John" required />
+        <Input label="Last Name"  value={form.lname} onChange={update('lname')}
+               placeholder="Doe"  required />
       </div>
 
-      <div className="flex justify-end">
+      <Input label="Email Address" type="email" value={form.email} onChange={update('email')}
+             placeholder="user@example.com" required />
 
-        <Button
-          type="submit"
-          leftIcon={<UserPlus className="w-4 h-4" />}
-          isLoading={creating}
+      <Input label="Password" type="password" value={form.password} onChange={update('password')}
+             placeholder="Min 8 characters" required />
+
+      <Input label="Phone Number (optional)" value={form.phoneNumber || ''}
+             onChange={update('phoneNumber')} placeholder="+91XXXXXXXXXX" />
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-300 mb-1.5">Role</label>
+        <select
+          value={form.role}
+          onChange={(e) => setForm({ ...form, role: e.target.value })}
+          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green transition-colors"
         >
-
-          {submitLabel}
-
-        </Button>
-
+          {roleOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
       </div>
 
+      <Button type="submit" className="w-full" isLoading={creating}
+              leftIcon={<UserPlus className="w-4 h-4" />}>
+        {submitLabel}
+      </Button>
     </form>
-
   );
-
 }

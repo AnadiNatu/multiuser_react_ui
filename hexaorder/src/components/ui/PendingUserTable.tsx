@@ -1,257 +1,105 @@
-import { ReactNode, useMemo, useState } from 'react';
-import { Search, RefreshCw } from 'lucide-react';
+// src/components/ui/PendingUserTable.tsx
+// FIX: Table header bg-slate-800 text-slate-300, rows bg-white text-slate-800,
+// empty/error states use correct contrast. Generic over row type T.
 
+import { RefreshCw, AlertCircle, Inbox } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Alert } from '../ui/Alert';
-import { Table } from '../ui/Table';
-import { div } from 'framer-motion/client';
-import { T } from 'node_modules/vitest/dist/chunks/traces.d.402V_yFI';
-import ActionToolbar from './ActionToolBar';
 
-export interface PendingTableItem {
-
-  id: number;
-
-  name: string;
-
-  email: string;
-
-  role: string;
-
-  emailVerified: boolean;
-
-  createdByAdmin: string;
+interface Column<T> {
+  key:       string;
+  header:    string;
+  sortable?: boolean;
+  render?:   (row: T) => React.ReactNode;
 }
 
-interface Props<T extends PendingTableItem> {
-
-  title?: string;
-
-  data: T[];
-
-  columns: any[];
-
-  onApprove?:(user:T)=>void;
-
-onResetPassword?:(user:T)=>void;
-
-  loading?: boolean;
-
-  error?: string;
-
-  emptyMessage: string;
-
-  keyExtractor: (item: T) => string;
-
-  onRefresh?: () => void;
-
+interface Props<T> {
+  data:           T[];
+  columns:        Column<T>[];
+  loading:        boolean;
+  error:          string;
+  keyExtractor:   (row: T) => string;
+  emptyMessage?:  string;
+  onRefresh?:     () => void;
   refreshLoading?: boolean;
-
-  onBulkApprove?: (ids: number[]) => void;
+  onApprove?:     (row: T) => void;
+  onResetPassword?: (row: T) => void;
 }
 
-export default function PendingUsersTable<T extends PendingTableItem>({
-  data,
-  columns,
-  loading = false,
-  error,
-  emptyMessage,
-  keyExtractor,
-  onRefresh,
-  refreshLoading = false,
+export default function PendingUsersTable<T>({
+  data, columns, loading, error, keyExtractor,
+  emptyMessage = 'No records found.',
+  onRefresh, refreshLoading,
 }: Props<T>) {
 
-  const [search, setSearch] = useState('');
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-brand-green border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-400">Loading…</p>
+        </div>
+      </div>
+    );
+  }
 
-const [selected, setSelected] = useState<number[]>([]);
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-12 text-center">
+        <AlertCircle className="w-10 h-10 text-red-400" />
+        <p className="text-red-300 font-semibold">Failed to load data</p>
+        <p className="text-slate-400 text-sm">{error}</p>
+        {onRefresh && (
+          <Button variant="outline" size="sm" onClick={onRefresh}
+                  leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
+            Retry
+          </Button>
+        )}
+      </div>
+    );
+  }
 
-  const filtered = useMemo(() => {
-
-    const query = search.toLowerCase().trim();   
-
-    if (!query) return data;
-
-    return data.filter((user) => {
-
-      return (
-
-        user.name.toLowerCase().includes(query)
-
-        ||
-
-        user.email.toLowerCase().includes(query)
-
-        ||
-
-        user.role.toLowerCase().includes(query)
-
-      );
-
-    });
-
-  }, [data, search]);
-
-  const exportCsv = () => {
-  const rows = [
-    ['Name', 'Email', 'Role'],
-    ...filtered.map((u) => [
-      u.name,
-      u.email,
-      u.role,
-    ]),
-  ];
-
-  const csv = rows.map((r) => r.join(',')).join('\n');
-
-  const blob = new Blob([csv], {
-    type: 'text/csv',
-  });
-
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-
-  a.href = url;
-  a.download = 'pending-users.csv';
-
-  a.click();
-
-  URL.revokeObjectURL(url);
-};
-
-  const allSelected =
-    filtered.length > 0 &&
-    filtered.every(u => selected.includes(u.id));
-
-const toggleAll = () => {
-
-    if (allSelected){
-
-        setSelected([]);
-
-    }else{
-
-        setSelected(filtered.map(u=>u.id));
-
-    }
-
-};
-
-const toggleOne = (id:number)=>{
-
-    setSelected(prev=>{
-
-        if(prev.includes(id)){
-
-            return prev.filter(x=>x!==id);
-
-        }
-
-        return [...prev,id];
-
-    });
-
-};
-
-    function onBulkApprove(arg0: undefined[]): void {
-        throw new Error('Function not implemented.');
-    }
+  if (data.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-12 text-center">
+        <Inbox className="w-10 h-10 text-slate-600" />
+        <p className="text-slate-300 font-semibold">All caught up!</p>
+        <p className="text-slate-500 text-sm">{emptyMessage}</p>
+        {onRefresh && (
+          <Button variant="outline" size="sm" onClick={onRefresh}
+                  leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                  isLoading={refreshLoading}>
+            Refresh
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
-
-    <div className="space-y-5">
-
-      <ActionToolbar
-  left={
-    <Input
-      placeholder="Search by name, email or role..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      leftIcon={<Search className="w-4 h-4" />}
-    />
-  }
-  right={
-    <div className="flex flex-wrap gap-3">
-
-      <Button
-        variant="outline"
-        onClick={exportCsv}
-      >
-        Export CSV
-      </Button>
-
-      {onRefresh && (
-        <Button
-          variant="outline"
-          leftIcon={<RefreshCw className="w-4 h-4" />}
-          onClick={onRefresh}
-          isLoading={refreshLoading}
-        >
-          Refresh
-        </Button>
-      )}
-
-      {onBulkApprove && (
-        <Button
-          onClick={() => onBulkApprove([])}
-        >
-          Bulk Approve
-        </Button>
-      )}
-
+    <div className="overflow-x-auto rounded-xl border border-slate-700">
+      <table className="min-w-full divide-y divide-slate-700">
+        <thead className="bg-slate-800">
+          <tr>
+            {columns.map((col) => (
+              <th key={col.key}
+                  className="px-4 py-3 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                {col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-slate-100">
+          {data.map((row) => (
+            <tr key={keyExtractor(row)} className="hover:bg-slate-50 transition-colors">
+              {columns.map((col) => (
+                <td key={col.key} className="px-4 py-3 text-sm">
+                  {col.render ? col.render(row) : String((row as any)[col.key] ?? '')}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
-  }
-/>
-        <Input
-          placeholder="Search by name, email or role..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search className="w-4 h-4" />}
-        />
-
-        {onRefresh && (
-
-          <Button
-            variant="outline"
-            leftIcon={<RefreshCw className="w-4 h-4" />}
-            onClick={onRefresh}
-            isLoading={refreshLoading}
-          >
-
-            Refresh
-
-          </Button>
-
-        )}
-      {error && (
-
-        <Alert variant="error">
-
-          {error}
-
-        </Alert>
-
-      )}
-
-      <Table<T>
-
-        data={filtered}
-
-        columns={columns}
-
-        keyExtractor={keyExtractor}
-
-        emptyMessage={emptyMessage}
-
-        hoverable
-
-        loading={loading}
-
-      />
-
-    </div>
-
   );
-
 }
