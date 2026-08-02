@@ -176,13 +176,12 @@
 // Email OTP, SMS OTP, and Phone Login. UI colors fixed (white text on dark bg).
 // Breadcrumb text fixed with explicit text-white/text-slate-300 classes.
 
-import { ShieldCheck, Mail, Smartphone, Phone } from 'lucide-react';
+import { ShieldCheck} from 'lucide-react';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { Button } from '../components/ui/Button';
 import AdminPageHeader from '../components/ui/AdminPageHeader';
 import AdminStatistics from '../components/ui/AdminStatistics';
 import AdminSection from '../components/ui/AdminSection';
-import AdminCard from '../components/ui/AdminCard';
 import OtpPanel from '../components/ui/OtpPanel';
 import { otpAdminService } from '../services/otpAdminService';
 

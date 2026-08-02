@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { Package, ShieldCheck, Boxes, BarChart3, ArrowRight, Users, Lock } from "lucide-react";
 import { Button } from "../components/ui/Button";

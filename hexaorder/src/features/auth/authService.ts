@@ -87,7 +87,7 @@ storeUser(user: User): void {
 
   // STORE REFRESH TOKEN
   storeRefreshToken: (
-    refreshToken: string
+    // refreshToken: string
   ): void => {
   },
 

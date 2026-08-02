@@ -27,7 +27,7 @@ export default function ConfirmationDialog({
   description,
   confirmText,
   cancelText = 'Cancel',
-  confirmVariant = 'primary',
+  // confirmVariant = 'primary',
   loading = false,
   onConfirm,
   onCancel,

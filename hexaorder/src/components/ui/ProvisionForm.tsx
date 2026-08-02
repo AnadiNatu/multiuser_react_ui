@@ -4,7 +4,6 @@
 
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
 import { UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface RoleOption { value: string; label: string; }
